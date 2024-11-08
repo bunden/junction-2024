@@ -14,8 +14,6 @@
     "prepare": "cd ../.. && husky src/Application.Client/.husky"
   },
   "dependencies": {
-    "fabric": "^6.4.3",
-    "three": "^0.170.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",
@@ -26,6 +24,8 @@
     "@types/node": "^22.9.0",
     "@types/three": "^0.169.0",
     "autoprefixer": "^10.4.20",
+    "bits-ui": "^0.21.16",
+    "clsx": "^2.1.1",
     "eslint": "^9.7.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.36.0",
@@ -37,6 +37,8 @@
     "prettier-plugin-svelte": "^3.2.6",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
+    "tailwind-merge": "^2.5.4",
+    "tailwind-variants": "^0.2.1",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.0.0",
