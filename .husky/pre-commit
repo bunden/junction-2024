@@ -1,0 +1,2 @@
+﻿cd src/Application.Client
+npx lint-staged
