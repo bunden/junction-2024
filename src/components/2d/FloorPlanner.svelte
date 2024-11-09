@@ -20,6 +20,7 @@
 
   const circles: Konva.Circle[] = $state([]);
 
+  let isClosed = false;
   // Center and fit the image
   $effect(() => {
     if (!imageLayer) return;
@@ -58,7 +59,7 @@
     });
 
     imageLayer.on('mouseup', () => {
-      if (!imageLayer || !shapeLayer) return;
+      if (!imageLayer || !shapeLayer || isClosed) return;
       const pointer = imageLayer.getRelativePointerPosition();
       if (!pointer || !clickPosition) return;
 
@@ -77,7 +78,7 @@
         draggable: true
       });
 
-      if (circles.length === 0) {
+      if (circles.length == 0) {
         shapeLayer.add(circle);
         circles.push(circle);
         return;
@@ -89,14 +90,23 @@
       const xDiffFirst = Math.abs(pointer.x - firstCircle.x());
       const yDiffFirst = Math.abs(pointer.y - firstCircle.y());
 
-      if (xDiffFirst < 15 && yDiffFirst < 15) {
+      if (xDiffFirst < 10 && yDiffFirst < 10) {
         const line = new Konva.Line({
           points: [firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()],
           stroke: 'white',
           strokeWidth: 4
         });
+        firstCircle.on('dragmove', () =>
+          line.points([firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()])
+        );
+        lastCircle.on('dragmove', () =>
+          line.points([firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()])
+        );
 
         shapeLayer.add(line);
+        isClosed = true;
+
+        line.moveToBottom();
         return;
       }
 
@@ -105,9 +115,12 @@
         stroke: 'white',
         strokeWidth: 4
       });
+      circle.on('dragmove', () => line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]));
+      lastCircle.on('dragmove', () => line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]));
 
       shapeLayer.add(circle);
       shapeLayer.add(line);
+      line.moveToBottom();
       circles.push(circle);
     });
   });
