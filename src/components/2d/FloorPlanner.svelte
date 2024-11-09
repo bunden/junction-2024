@@ -1,15 +1,15 @@
 <script lang="ts">
   import Konva from 'konva';
   import { Layer, Image } from 'svelte-konva';
+  import type {Point} from "$utils/pointsToModel";
 
   interface FloorPlannerProps {
     blueprint: string;
     isClosed: boolean;
+    circles: Konva.Circle[]
   }
 
-  type Point = { x: number; y: number };
-
-  let { blueprint, isClosed = $bindable() }: FloorPlannerProps = $props();
+  let { blueprint, isClosed = $bindable(), circles = $bindable() }: FloorPlannerProps = $props();
 
   let imageLayer: Konva.Layer | undefined = $state();
   let shapeLayer: Konva.Layer | undefined = $state();
@@ -18,8 +18,6 @@
   let pos = $state({ x: 0, y: 0 });
 
   let clickPosition: Point | undefined = $state();
-
-  const circles: Konva.Circle[] = $state([]);
 
   let poly: Konva.Line | undefined = undefined
 

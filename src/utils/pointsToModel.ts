@@ -1,23 +1,23 @@
 import { Vector2, Vector3 } from 'three';
 import * as util from "node:util";
 
-interface Point {
+export interface Point {
   x: number;
   y: number;
 }
 
-interface WallParameters {
+export interface WallParameters {
   startPos: Point;
   endPos: Point;
   wallWidth: number;
 }
 
-interface Floor {
+export interface Floor {
   number: number;
   height: number;
   outerWallCorners: Point[];
   outerWallWidth: number;
-  innerWallVectors: WallParameters[];
+  innerWallVectors?: WallParameters[];
 }
 
 function expand(floors: Floor[]) {

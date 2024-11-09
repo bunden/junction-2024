@@ -1,4 +1,5 @@
 import { type Writable, writable } from 'svelte/store';
+import type {Point, WallParameters} from "$utils/pointsToModel";
 
 export const currentView: Writable<undefined | '2d' | '3d'> = writable(undefined);
 
@@ -8,7 +9,10 @@ export const floorStates: Writable<
       string,
       {
         blueprint: string;
-        outerWallCorners?: { x: number; y: number }[];
+        outerWallCorners?: Point[];
+        height?: number;
+        outerWallWidth?: number;
+        innerWallVectors?: WallParameters[];
       }
     >
 > = writable(undefined);
