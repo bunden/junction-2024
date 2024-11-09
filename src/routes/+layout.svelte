@@ -8,8 +8,7 @@
   import { Button } from '$components/ui/button';
   import { ScrollArea } from '$components/ui/scroll-area/index.js';
   import type { Snippet } from 'svelte';
-  import Dropzone from 'svelte-file-dropzone';
-  import {blueprint, currentView} from "../globalStore";
+  import {activeFloor, blueprint, currentView} from "../globalStore";
 
   import {
     fade,
@@ -18,20 +17,11 @@
   let { children }: { children: Snippet } = $props();
 
   const hasModel = $state(true);
-  let activeFloorKey: string | undefined = $state('1');
   let floors: number[] = $state([1]);
   let activeEditor: '2d' | '3d' = $state('2d');
 
-  let hasFloorPlan: boolean = $state(false)
-
-  blueprint.subscribe((blueprint) => {
-    if(blueprint){
-      hasFloorPlan = true
-    }
-  })
-
   let deleteBottomOffset = $derived.by(() => {
-    const active: number = Number(activeFloorKey);
+    const active: number = Number($activeFloor);
     return `${1.5 + active * 3.5}rem`;
   });
 
@@ -42,41 +32,27 @@
   const addFloor = () => {
     const nextFloor = floors[floors.length - 1] + 1;
     floors = [...floors, nextFloor];
-    activeFloorKey = String(nextFloor);
+    $activeFloor = String(nextFloor);
   };
 
   const deleteFloor = () => {
-    const currentFloor = Number(activeFloorKey);
+    const currentFloor = Number($activeFloor);
     const lastFloor = floors[floors.length - 1];
     if (lastFloor === currentFloor) {
-      activeFloorKey = String(lastFloor - 1);
+      $activeFloor = String(lastFloor - 1);
     }
     floors.splice(floors.length - 1, 1);
   };
 
   $effect(() => {
-    if (activeFloorKey === undefined) {
-      activeFloorKey = '1';
+    if ($activeFloor === undefined) {
+      $activeFloor = '1';
     }
   });
 
   $effect(() => {
     currentView.set(activeEditor)
   })
-
-  let file: File | undefined = $state(undefined);
-
-  const handleFilesSelect = (e: DragEvent) => {
-    const receivedFiles = e.dataTransfer?.files
-    const receivedTypes = e.dataTransfer?.types
-
-    if(receivedFiles && receivedTypes){
-      const allowedTypes = ['svg', 'png', 'jpg', 'jpeg'];
-      file = receivedFiles[0]
-      const url = window.URL.createObjectURL(file);
-      blueprint.set(url)
-    }
-  }
 </script>
 
 <main class="h-screen w-screen flex flex-col">
@@ -96,10 +72,11 @@
     </Menubar.Root>
   </nav>
   <div class="w-full h-full background relative">
-    <div class="absolute top-12 left-12 right-12 h-16 flex z-30 justify-center">
-      {#if hasFloorPlan}
+
+    <div class="absolute top-12 left-1/2 right-1/2 -translate-x-1/2 h-16 flex z-30 justify-center">
+      {#if $blueprint?.get($activeFloor) !== undefined}
         <span transition:fade={{duration: 150, delay: 150}}>
-          <Tabs.Root bind:value={activeEditor}>
+          <Tabs.Root bind:value={activeEditor} class="w-fit">
             <Tabs.List>
               <Tabs.Trigger value="2d">2D Editor</Tabs.Trigger>
               <Tabs.Trigger value="3d" disabled={is3dViable === false}>3D Editor</Tabs.Trigger>
@@ -109,22 +86,11 @@
       {/if}
     </div>
 
-    {#if hasFloorPlan === false}
-      <span>
-        <Dropzone
-          class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 top-14 left-[5.25rem] right-[5.25rem] rounded-3xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
-          ondrop={handleFilesSelect}
-        >
-        <span class="text-4xl font-bold">Drop a floor plan here</span>
-        <span>PNG or JPG</span>
-      </Dropzone>
-      </span>
-    {/if}
     {@render children?.()}
 
-    <div class="absolute top-4 left-4 w-32 bottom-0 flex flex-col justify-end">
+    <div class="absolute top-4 left-4 w-12 bottom-0 flex flex-col justify-end">
       <ScrollArea class="w-fit">
-        <ToggleGroup.Root class="flex flex-col gap-2" bind:value={activeFloorKey} variant="outline" type="single">
+        <ToggleGroup.Root class="flex flex-col gap-2" bind:value={$activeFloor} variant="outline" type="single">
           {#each floors.reverse() as floor}
             <ToggleGroup.Item
               class="h-12 w-12 opacity-75 transition duration-150 hover:opacity-100 text-lg bg-background"
@@ -156,7 +122,7 @@
           <AlertDialog.Trigger asChild let:builder>
             <Button
               style="bottom: {deleteBottomOffset};"
-              class="w-12 h-12 absolute left-[3.25rem] hover:bg-red-600 bg-red-400 transition-all duration-150 hover:text-foreground text-foreground"
+              class="w-12 h-12 absolute left-[3.25rem] hover:bg-red-600 bg-red-400 transition duration-150 hover:text-foreground text-foreground"
               builders={[builder]}
               variant="outline"
               value="+"
