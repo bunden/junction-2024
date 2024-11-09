@@ -3,9 +3,14 @@
   import { Stage } from 'svelte-konva';
 
   import FloorPlanner from '$components/2d/FloorPlanner.svelte';
+  import { Button } from "$components/ui/button/index.js";
+  import * as Card from "$components/ui/card/index.js";
+
+  import { fade } from 'svelte/transition'
 
   let width = $state(0);
   let height = $state(0);
+  let isClosed = $state(false)
 
   let stage: Konva.Stage | undefined = $state();
 
@@ -55,5 +60,19 @@
 </script>
 
 <Stage bind:handle={stage} config={{ width, height }}>
-  <FloorPlanner blueprint={blueprint} />
+  <FloorPlanner bind:isClosed blueprint={blueprint} />
 </Stage>
+
+{#if isClosed}
+  <span transition:fade={{duration: 150}} >
+      <Card.Root class="w-96 absolute bottom-4 -translate-x-1/2 left-1/2 right-1/2">
+      <Card.Header class="mb-4">
+        <Card.Title>You have a complete building shape!</Card.Title>
+        <Card.Description>Do you want to continue?</Card.Description>
+      </Card.Header>
+      <Card.Footer class="flex justify-between">
+        <Button class="w-full">Continue</Button>
+      </Card.Footer>
+    </Card.Root>
+  </span>
+{/if}

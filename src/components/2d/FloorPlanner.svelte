@@ -4,11 +4,12 @@
 
   interface FloorPlannerProps {
     blueprint: string;
+    isClosed: boolean;
   }
 
   type Point = { x: number; y: number };
 
-  let { blueprint }: FloorPlannerProps = $props();
+  let { blueprint, isClosed = $bindable() }: FloorPlannerProps = $props();
 
   let imageLayer: Konva.Layer | undefined = $state();
   let shapeLayer: Konva.Layer | undefined = $state();
@@ -20,7 +21,31 @@
 
   const circles: Konva.Circle[] = $state([]);
 
-  let isClosed = false;
+  let poly: Konva.Line | undefined = undefined
+
+  const calculatePolyShape = () => {
+    if(isClosed && shapeLayer){
+      const points = circles.map((circle) => {
+        return [circle.x(), circle.y()]
+      }).flat()
+
+      if(poly !== undefined){
+        poly.destroy()
+      }
+
+      poly = new Konva.Line({
+        points: points,
+        fill: 'rgba(0, 0, 0, 0.25)',
+        stroke: 'rgba(0, 0, 0, 0.75)',
+        strokeWidth: 5,
+        closed: true,
+      });
+
+      shapeLayer.add(poly)
+      poly.moveToBottom()
+    }
+  }
+
   // Center and fit the image
   $effect(() => {
     if (!imageLayer) return;
@@ -115,7 +140,10 @@
         stroke: 'white',
         strokeWidth: 4
       });
-      circle.on('dragmove', () => line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]));
+      circle.on('dragmove', () => {
+        calculatePolyShape()
+        line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()])
+      });
       lastCircle.on('dragmove', () => line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]));
 
       shapeLayer.add(circle);
@@ -124,6 +152,8 @@
       circles.push(circle);
     });
   });
+
+  $effect(() => calculatePolyShape())
 </script>
 
 <Layer bind:handle={imageLayer}>
