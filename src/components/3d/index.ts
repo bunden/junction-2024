@@ -4,52 +4,42 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 class Environment3d {
+  canvas: HTMLCanvasElement;
   scene: THREE.Scene;
   camera: THREE.Camera;
   renderer: THREE.WebGLRenderer;
+  raycaster: THREE.Raycaster;
+  additionalModels: THREE.Group[] = [];
+  highlightedObject?: THREE.Mesh = undefined;
+  selectedObject?: THREE.Mesh = undefined;
+  selectedObjectMaterial?: THREE.Material | THREE.Material[] = undefined;
 
   constructor(canvas: HTMLCanvasElement) {
-    const ret = this.init(canvas);
-    this.scene = ret.scene;
-    this.camera = ret.camera;
-    this.renderer = ret.renderer;
+    this.canvas = canvas;
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    this.raycaster = new THREE.Raycaster();
+    this.init();
+    const render = () => {
+      if (this.selectedObject) {
+        (this.selectedObject as THREE.Mesh).material = new THREE.MeshStandardMaterial({ color: '#FF0000' });
+      }
+      this.renderer.render(this.scene, this.camera);
+    };
+    this.renderer.setAnimationLoop(render);
   }
 
-  init(canvas: HTMLCanvasElement) {
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 10;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  init() {
+    this.camera.position.z = 10;
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     const ambientLight = new THREE.AmbientLight('#FFFFFF', 1);
-    scene.add(ambientLight);
+    this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight('#AAAAFF', 1);
-    directionalLight.position.x = 10;
-    directionalLight.position.y = 10;
-    directionalLight.position.z = 10;
-    scene.add(directionalLight);
-
-    const loader = new GLTFLoader();
-    loader.load(
-      '/elevator.gltf',
-      function (gltf) {
-        scene.add(gltf.scene);
-      },
-      undefined,
-      function (error) {
-        console.error(error);
-      }
-    );
-
-    function render() {
-      renderer.render(scene, camera);
-    }
-    renderer.setAnimationLoop(render);
-
-    return { scene, camera, renderer };
+    const directionalLight = new THREE.DirectionalLight('#FFFFFF', 1);
+    directionalLight.position.set(8, 10, 5);
+    this.scene.add(directionalLight);
   }
 
   setCameraRotation(yaw: number, pitch: number, distance: number) {
@@ -60,6 +50,69 @@ class Environment3d {
     const z = distance * Math.cos(pitchRad) * Math.cos(yawRad);
     this.camera.position.set(x, y, z);
     this.camera.lookAt(0, 0, 0);
+  }
+
+  loadAdditionalModel(file: any) {
+    const loader = new GLTFLoader();
+    const url = URL.createObjectURL(file);
+    loader.load(
+      url,
+      (gltf) => {
+        this.scene.add(gltf.scene);
+        this.additionalModels.push(gltf.scene);
+        URL.revokeObjectURL(url);
+      },
+      undefined,
+      (error) => {
+        console.error(error);
+        URL.revokeObjectURL(url);
+      }
+    );
+  }
+
+  updateHighlightedObject(x: number, y: number) {
+    const mouse = new THREE.Vector2();
+    mouse.x = (x / this.canvas.clientWidth) * 2 - 1;
+    mouse.y = -(y / this.canvas.clientHeight) * 2 + 1;
+    this.raycaster.setFromCamera(mouse, this.camera);
+    const intersection = this.raycaster.intersectObjects(this.additionalModels);
+    if (intersection.length == 0) {
+      this.highlightedObject = undefined;
+    } else {
+      const { object } = intersection[0];
+      this.highlightedObject = object as THREE.Mesh;
+    }
+  }
+
+  handleObjectSelection() {
+    // Restore material of old selected object
+    if (this.selectedObject && this.selectedObjectMaterial) {
+      this.selectedObject.material = this.selectedObjectMaterial;
+    }
+    if (this.highlightedObject && this.highlightedObject !== this.selectedObject) {
+      // Set new selected object and save its material
+      this.selectedObject = this.highlightedObject;
+      this.selectedObjectMaterial = this.selectedObject.material;
+      return;
+    }
+    this.selectedObject = undefined;
+    this.selectedObjectMaterial = undefined;
+  }
+
+  moveSelectedObject(x: number, y: number, z: number) {
+    this.selectedObject?.position.add(new THREE.Vector3(x, y, z));
+  }
+
+  loadManualModel() {
+    const geometry = new THREE.BufferGeometry();
+
+    const vertices = new Float32Array([]);
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: true });
+    const mesh = new THREE.Mesh(geometry, material);
+
+    this.scene.add(mesh);
   }
 }
 
