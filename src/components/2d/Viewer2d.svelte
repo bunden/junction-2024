@@ -9,7 +9,13 @@
 
   let stage: Konva.Stage | undefined = $state();
 
-  const scaleBy = 1.01;
+  interface Props {
+    blueprint: string;
+  }
+
+  let { blueprint }: Props = $props()
+
+  const scaleBy = 1.15;
   let eventHandlerRegistered = false;
   $effect(() => {
     width = window.innerWidth;
@@ -28,7 +34,7 @@
         y: (pointer.y - stage.y()) / oldScale
       };
 
-      let direction = e.evt.deltaY > 0 ? 1 : -1;
+      let direction = e.evt.deltaY > 0 ? -1 : 1;
 
       if (e.evt.ctrlKey) {
         direction = -direction;
@@ -49,5 +55,5 @@
 </script>
 
 <Stage bind:handle={stage} config={{ width, height }}>
-  <FloorPlanner blueprint="/blueprint.jpg" />
+  <FloorPlanner blueprint={blueprint} />
 </Stage>
