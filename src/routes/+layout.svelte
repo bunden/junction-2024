@@ -8,7 +8,7 @@
   import { Button } from '$components/ui/button';
   import { ScrollArea } from '$components/ui/scroll-area/index.js';
   import type { Snippet } from 'svelte';
-  import {activeFloor, blueprint, currentView} from "../globalStore";
+  import {activeFloor, floorStates, currentView} from "../globalStore";
 
   import {
     fade,
@@ -74,7 +74,7 @@
   <div class="w-full h-full background relative">
 
     <div class="absolute top-12 left-1/2 right-1/2 -translate-x-1/2 h-16 flex z-30 justify-center">
-      {#if $blueprint?.get($activeFloor) !== undefined}
+      {#if $floorStates?.get($activeFloor) !== undefined}
         <span transition:fade={{duration: 150, delay: 150}}>
           <Tabs.Root bind:value={activeEditor} class="w-fit">
             <Tabs.List>
