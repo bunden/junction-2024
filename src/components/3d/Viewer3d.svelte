@@ -47,7 +47,7 @@
   };
 </script>
 
-<div style="position: absolute">
+<div style="position: absolute; top: 35px;">
   <button
     onclick={() => {
       environment.loadManualModel();
