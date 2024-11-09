@@ -4,7 +4,7 @@
   import type {Point} from "$utils/pointsToModel";
 
   interface FloorPlannerProps {
-    blueprint: string;
+    blueprint: string | undefined;
     isClosed: boolean;
     circles: Konva.Circle[]
   }
@@ -46,7 +46,7 @@
 
   // Center and fit the image
   $effect(() => {
-    if (!imageLayer) return;
+    if (!imageLayer || !blueprint) return;
 
     const canvas = imageLayer.getCanvas();
 

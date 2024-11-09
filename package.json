@@ -11,7 +11,7 @@
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "format": "prettier --write .",
-    "prepare": "cd ../.. && husky src/Application.Client/.husky"
+    "prepare": "husky"
   },
   "dependencies": {
     "canvas": "^2.11.2",

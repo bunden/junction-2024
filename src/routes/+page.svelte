@@ -2,7 +2,6 @@
   import { Viewer3d } from '$components/3d';
   import Viewer2d from '$components/2d/Viewer2d.svelte';
   import { activeFloor, floorStates, currentView } from '../globalStore';
-  import { fade } from 'svelte/transition';
   import Dropzone from 'svelte-file-dropzone';
 
   let file: File | undefined = $state(undefined);
@@ -40,17 +39,8 @@
   });
 </script>
 
-{#if $currentView === '3d'}
-  <span in:fade={{ duration: 150, delay: 150 }}>
-    <Viewer3d />
-  </span>
-{/if}
-
-{#if $currentView === '2d' && $floorStates !== undefined && currentBlueprint !== undefined}
-  <span in:fade={{ duration: 150, delay: 150 }}>
-    <Viewer2d blueprint={currentBlueprint} />
-  </span>
-{/if}
+<Viewer2d hidden={$currentView !== '2d' || currentBlueprint === undefined} blueprint={currentBlueprint} />
+<Viewer3d hidden={$currentView !== '3d'} />
 
 {#if $floorStates === undefined || currentBlueprint === undefined}
   <Dropzone

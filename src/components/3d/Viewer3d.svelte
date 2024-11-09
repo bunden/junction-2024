@@ -9,6 +9,12 @@
   let mouseDownX: number | undefined = undefined;
   let mouseDownY: number | undefined = undefined;
 
+  interface Props {
+    hidden: boolean;
+  }
+
+  let { hidden }: Props = $props();
+
   $effect(() => {
     environment = new Environment3d(canvas);
   });
@@ -49,28 +55,31 @@
   };
 </script>
 
-<div style="position: absolute; top: 35px; z-index: 999">
-  <button
-    onclick={() => {
-      environment.loadManualModel();
-    }}>Load manual model</button
-  >
-  <input
-    type="file"
-    id="fileInput"
-    onchange={(event) => {
-      if (!event.target) return;
-      const files = (event.target as HTMLInputElement).files;
-      if (!files) return;
-      environment.loadAdditionalModel(files[0]);
-    }}
-  />
-</div>
+<span class={hidden ? 'hidden' : ''}>
+  <div style="position: absolute; top: 35px; z-index: 999">
+    <button
+      onclick={() => {
+        environment.loadManualModel();
+      }}
+      >Load manual model
+    </button>
+    <input
+      type="file"
+      id="fileInput"
+      onchange={(event) => {
+        if (!event.target) return;
+        const files = (event.target as HTMLInputElement).files;
+        if (!files) return;
+        environment.loadAdditionalModel(files[0]);
+      }}
+    />
+  </div>
 
-<canvas
-  bind:this={canvas}
-  onmouseup={mouseUpHandler}
-  onmousedown={mouseDownHandler}
-  onmousemove={mouseMoveHandler}
-  onwheel={mouseScrollHandler}
-></canvas>
+  <canvas
+    bind:this={canvas}
+    onmouseup={mouseUpHandler}
+    onmousedown={mouseDownHandler}
+    onmousemove={mouseMoveHandler}
+    onwheel={mouseScrollHandler}
+  ></canvas>
+</span>
