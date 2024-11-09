@@ -9,7 +9,6 @@ class Environment3d {
   camera: THREE.Camera;
   renderer: THREE.WebGLRenderer;
   raycaster: THREE.Raycaster;
-  additionalModels: THREE.Group[] = [];
   highlightedObject?: THREE.Mesh = undefined;
   selectedObject?: THREE.Mesh = undefined;
   selectedObjectMaterial?: THREE.Material | THREE.Material[] = undefined;
@@ -17,7 +16,7 @@ class Environment3d {
   cameraYaw: number = 0;
   cameraPitch: number = 0;
   cameraDistance: number = 10;
-  cameraTarget: THREE.Vector3 = new THREE.Vector3(2, 0, 0);
+  cameraTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -27,9 +26,6 @@ class Environment3d {
     this.raycaster = new THREE.Raycaster();
     this.init();
     const render = () => {
-      if (this.selectedObject) {
-        (this.selectedObject as THREE.Mesh).material = new THREE.MeshStandardMaterial({ color: '#FF0000' });
-      }
       this.renderer.render(this.scene, this.camera);
     };
     this.renderer.setAnimationLoop(render);
@@ -84,8 +80,9 @@ class Environment3d {
     loader.load(
       url,
       (gltf) => {
-        this.scene.add(gltf.scene);
-        this.additionalModels.push(gltf.scene);
+        gltf.scene.children.forEach((object) => {
+          this.scene.add(object);
+        });
         URL.revokeObjectURL(url);
       },
       undefined,
@@ -96,12 +93,18 @@ class Environment3d {
     );
   }
 
+  removeSelectedObject() {
+    if (this.selectedObject) {
+      this.scene.remove(this.selectedObject);
+    }
+  }
+
   updateHighlightedObject(x: number, y: number) {
     const mouse = new THREE.Vector2();
     mouse.x = (x / this.canvas.clientWidth) * 2 - 1;
     mouse.y = -(y / this.canvas.clientHeight) * 2 + 1;
     this.raycaster.setFromCamera(mouse, this.camera);
-    const intersection = this.raycaster.intersectObjects(this.additionalModels);
+    const intersection = this.raycaster.intersectObjects(this.scene.children);
     if (intersection.length == 0) {
       this.highlightedObject = undefined;
     } else {
@@ -110,7 +113,7 @@ class Environment3d {
     }
   }
 
-  handleObjectSelection() {
+  handleObjectSelection(): boolean {
     // Restore material of old selected object
     if (this.selectedObject && this.selectedObjectMaterial) {
       this.selectedObject.material = this.selectedObjectMaterial;
@@ -119,10 +122,12 @@ class Environment3d {
       // Set new selected object and save its material
       this.selectedObject = this.highlightedObject;
       this.selectedObjectMaterial = this.selectedObject.material;
-      return;
+      this.selectedObject.material = new THREE.MeshStandardMaterial({ color: '#FF0000' });
+      return true;
     }
     this.selectedObject = undefined;
     this.selectedObjectMaterial = undefined;
+    return false;
   }
 
   moveSelectedObject(xMovement: number, yMovement: number, movementSpeed: number, modifier: boolean) {
@@ -134,6 +139,10 @@ class Environment3d {
       const zDiff = xMovement * movementSpeed * -Math.sin(yawRad) + yMovement * movementSpeed * Math.cos(yawRad);
       this.selectedObject?.position.add(new THREE.Vector3(xDiff, 0, zDiff));
     }
+  }
+
+  rotateSelectedObject(rotationAmount: number) {
+    this.selectedObject?.rotateY(rotationAmount / 2000);
   }
 
   loadManualModel() {
@@ -160,7 +169,7 @@ class Environment3d {
 
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.computeVertexNormals();
-    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: false });
+    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', transparent: true, opacity: 0.5 });
     const mesh = new THREE.Mesh(geometry, material);
 
     this.scene.add(mesh);

@@ -18,3 +18,5 @@ export const floorStates: Writable<
 > = writable(undefined);
 
 export const activeFloor: Writable<string> = writable('1');
+
+export const objectSelected: Writable<boolean> = writable(false);

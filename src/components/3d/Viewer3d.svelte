@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Environment3d } from './index';
+  import { objectSelected } from '../../globalStore';
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
@@ -23,7 +24,7 @@
     mouseDown = false;
     if (event.button === 1) mouseWheelDown = false;
     if (event.offsetX === mouseDownX && event.offsetY === mouseDownY) {
-      environment.handleObjectSelection();
+      $objectSelected = environment.handleObjectSelection();
     }
   };
 
@@ -51,7 +52,11 @@
   };
 
   const mouseScrollHandler = (event: WheelEvent) => {
-    environment.zoomCamera(event.deltaY);
+    if (event.getModifierState('Shift') && environment.selectedObject) {
+      environment.rotateSelectedObject(event.deltaY);
+    } else {
+      environment.zoomCamera(event.deltaY);
+    }
   };
 </script>
 
@@ -60,9 +65,8 @@
     <button
       onclick={() => {
         environment.loadManualModel();
-      }}
-      >Load manual model
-    </button>
+      }}>Load manual model</button
+    >
     <input
       type="file"
       id="fileInput"
@@ -73,6 +77,12 @@
         environment.loadAdditionalModel(files[0]);
       }}
     />
+    <button
+      onclick={() => {
+        environment.removeSelectedObject();
+      }}
+      disabled={!$objectSelected}>Delete</button
+    >
   </div>
 
   <canvas
