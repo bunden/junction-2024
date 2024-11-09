@@ -14,6 +14,11 @@ class Environment3d {
   selectedObject?: THREE.Mesh = undefined;
   selectedObjectMaterial?: THREE.Material | THREE.Material[] = undefined;
 
+  cameraYaw: number = 0;
+  cameraPitch: number = 0;
+  cameraDistance: number = 10;
+  cameraTarget: THREE.Vector3 = new THREE.Vector3(2, 0, 0);
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.scene = new THREE.Scene();
@@ -40,16 +45,37 @@ class Environment3d {
     const directionalLight = new THREE.DirectionalLight('#FFFFFF', 1);
     directionalLight.position.set(8, 10, 5);
     this.scene.add(directionalLight);
+
+    this.updateCameraPosition();
   }
 
-  setCameraRotation(yaw: number, pitch: number, distance: number) {
-    const yawRad = (yaw * Math.PI) / 180;
-    const pitchRad = (pitch * Math.PI) / 180;
-    const y = distance * Math.sin(pitchRad);
-    const x = distance * Math.cos(pitchRad) * Math.sin(yawRad);
-    const z = distance * Math.cos(pitchRad) * Math.cos(yawRad);
+  rotateCamera(xMovement: number, yMovement: number) {
+    this.cameraYaw -= xMovement / 2;
+    this.cameraPitch = Math.min(Math.max(this.cameraPitch + yMovement / 2, -85), 85);
+    this.updateCameraPosition();
+  }
+
+  zoomCamera(zoomMovement: number) {
+    this.cameraDistance = Math.min(Math.max(this.cameraDistance + zoomMovement / 100, 1), 50);
+    this.updateCameraPosition();
+  }
+
+  moveCameraTarget(xMovement: number, yMovement: number) {
+    const movementSpeed = this.cameraDistance * 0.001;
+    const yawRad = (this.cameraYaw * Math.PI) / 180;
+    this.cameraTarget.x -= xMovement * movementSpeed * Math.cos(yawRad) + yMovement * movementSpeed * Math.sin(yawRad);
+    this.cameraTarget.z -= xMovement * movementSpeed * -Math.sin(yawRad) + yMovement * movementSpeed * Math.cos(yawRad);
+    this.updateCameraPosition();
+  }
+
+  updateCameraPosition() {
+    const yawRad = (this.cameraYaw * Math.PI) / 180;
+    const pitchRad = (this.cameraPitch * Math.PI) / 180;
+    const y = this.cameraDistance * Math.sin(pitchRad) + this.cameraTarget.y;
+    const x = this.cameraDistance * Math.cos(pitchRad) * Math.sin(yawRad) + this.cameraTarget.x;
+    const z = this.cameraDistance * Math.cos(pitchRad) * Math.cos(yawRad) + this.cameraTarget.z;
     this.camera.position.set(x, y, z);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(this.cameraTarget);
   }
 
   loadAdditionalModel(file: any) {
@@ -99,17 +125,42 @@ class Environment3d {
     this.selectedObjectMaterial = undefined;
   }
 
-  moveSelectedObject(x: number, y: number, z: number) {
-    this.selectedObject?.position.add(new THREE.Vector3(x, y, z));
+  moveSelectedObject(xMovement: number, yMovement: number, movementSpeed: number, modifier: boolean) {
+    if (modifier) {
+      this.selectedObject?.position.add(new THREE.Vector3(0, -yMovement * movementSpeed, 0));
+    } else {
+      const yawRad = (this.cameraYaw * Math.PI) / 180;
+      const xDiff = xMovement * movementSpeed * Math.cos(yawRad) + yMovement * movementSpeed * Math.sin(yawRad);
+      const zDiff = xMovement * movementSpeed * -Math.sin(yawRad) + yMovement * movementSpeed * Math.cos(yawRad);
+      this.selectedObject?.position.add(new THREE.Vector3(xDiff, 0, zDiff));
+    }
   }
 
   loadManualModel() {
     const geometry = new THREE.BufferGeometry();
 
-    const vertices = new Float32Array([]);
+    const vertices = new Float32Array([
+      0, 0, 0.25, 4, 0, -0.25, 4, 0, 0.25, 0, 0, 0.25, 0, 0, -0.25, 4, 0, -0.25, 0, 0, 0.25, 0, 3, -0.25, 0, 0, -0.25,
+      0, 0, 0.25, 0, 3, 0.25, 0, 3, -0.25, 4, 0, 0.25, 0, 3, 0.25, 0, 0, 0.25, 4, 0, 0.25, 4, 3, 0.25, 0, 3, 0.25, 4, 0,
+      -0.25, 4, 3, 0.25, 4, 0, 0.25, 4, 0, -0.25, 4, 3, -0.25, 4, 3, 0.25, 0, 0, -0.25, 4, 3, -0.25, 4, 0, -0.25, 0, 0,
+      -0.25, 0, 3, -0.25, 4, 3, -0.25, 0, 3, 0.25, 4, 3, 0.25, 4, 3, -0.25, 0, 3, 0.25, 4, 3, -0.25, 0, 3, -0.25, 3.75,
+      0, 0, 4.25, 0, 4, 3.75, 0, 4, 3.75, 0, 0, 4.25, 0, 0, 4.25, 0, 4, 3.75, 0, 0, 4.25, 3, 0, 4.25, 0, 0, 3.75, 0, 0,
+      3.75, 3, 0, 4.25, 3, 0, 3.75, 0, 4, 3.75, 3, 0, 3.75, 0, 0, 3.75, 0, 4, 3.75, 3, 4, 3.75, 3, 0, 4.25, 0, 4, 3.75,
+      3, 4, 3.75, 0, 4, 4.25, 0, 4, 4.25, 3, 4, 3.75, 3, 4, 4.25, 0, 0, 4.25, 3, 4, 4.25, 0, 4, 4.25, 0, 0, 4.25, 3, 0,
+      4.25, 3, 4, 3.75, 3, 0, 3.75, 3, 4, 4.25, 3, 4, 3.75, 3, 0, 4.25, 3, 4, 4.25, 3, 0, 4, 0, 3.75, 0, 0, 4.25, 0, 0,
+      3.75, 4, 0, 3.75, 4, 0, 4.25, 0, 0, 4.25, 4, 0, 3.75, 4, 3, 4.25, 4, 0, 4.25, 4, 0, 3.75, 4, 3, 3.75, 4, 3, 4.25,
+      0, 0, 3.75, 4, 3, 3.75, 4, 0, 3.75, 0, 0, 3.75, 0, 3, 3.75, 4, 3, 3.75, 0, 0, 4.25, 0, 3, 3.75, 0, 0, 3.75, 0, 0,
+      4.25, 0, 3, 4.25, 0, 3, 3.75, 4, 0, 4.25, 0, 3, 4.25, 0, 0, 4.25, 4, 0, 4.25, 4, 3, 4.25, 0, 3, 4.25, 4, 3, 3.75,
+      0, 3, 3.75, 0, 3, 4.25, 4, 3, 3.75, 0, 3, 4.25, 4, 3, 4.25, 0.25, 0, 4, -0.25, 0, 0, 0.25, 0, 0, 0.25, 0, 4,
+      -0.25, 0, 4, -0.25, 0, 0, 0.25, 0, 4, -0.25, 3, 4, -0.25, 0, 4, 0.25, 0, 4, 0.25, 3, 4, -0.25, 3, 4, 0.25, 0, 0,
+      0.25, 3, 4, 0.25, 0, 4, 0.25, 0, 0, 0.25, 3, 0, 0.25, 3, 4, -0.25, 0, 0, 0.25, 3, 0, 0.25, 0, 0, -0.25, 0, 0,
+      -0.25, 3, 0, 0.25, 3, 0, -0.25, 0, 4, -0.25, 3, 0, -0.25, 0, 0, -0.25, 0, 4, -0.25, 3, 4, -0.25, 3, 0, 0.25, 3, 4,
+      0.25, 3, 0, -0.25, 3, 0, 0.25, 3, 4, -0.25, 3, 0, -0.25, 3, 4
+    ]);
 
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: true });
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: false });
     const mesh = new THREE.Mesh(geometry, material);
 
     this.scene.add(mesh);

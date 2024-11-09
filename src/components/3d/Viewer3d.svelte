@@ -1,14 +1,11 @@
 <script lang="ts">
-  import { ThreeMFLoader } from 'three/examples/jsm/Addons.js';
   import { Environment3d } from './index';
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
 
   let mouseDown: boolean = false;
-  let cameraYaw: number = 0;
-  let cameraPitch: number = 0;
-  let cameraDistance: number = 10;
+  let mouseWheelDown: boolean = false;
   let mouseDownX: number | undefined = undefined;
   let mouseDownY: number | undefined = undefined;
 
@@ -18,6 +15,7 @@
 
   const mouseUpHandler = (event: MouseEvent) => {
     mouseDown = false;
+    if (event.button === 1) mouseWheelDown = false;
     if (event.offsetX === mouseDownX && event.offsetY === mouseDownY) {
       environment.handleObjectSelection();
     }
@@ -25,29 +23,33 @@
 
   const mouseDownHandler = (event: MouseEvent) => {
     mouseDown = true;
+    if (event.button === 1) mouseWheelDown = true;
     mouseDownX = event.offsetX;
     mouseDownY = event.offsetY;
   };
 
   const mouseMoveHandler = (event: MouseEvent) => {
-    if (mouseDown && environment.selectedObject) {
-      environment.moveSelectedObject(event.movementX / 1000, 0, event.movementY / 1000);
+    if (mouseDown && environment.selectedObject && !mouseWheelDown) {
+      const movementSpeed = event.getModifierState('Shift') ? 0.05 : 0.005;
+      const modifier = event.getModifierState('Control');
+      environment.moveSelectedObject(event.movementX, event.movementY, movementSpeed, modifier);
     } else if (mouseDown) {
-      cameraYaw = cameraYaw - event.movementX / 2;
-      cameraPitch = Math.min(Math.max(cameraPitch + event.movementY / 2, -85), 85);
-      environment.setCameraRotation(cameraYaw, cameraPitch, cameraDistance);
+      if (event.getModifierState('Control')) {
+        environment.moveCameraTarget(event.movementX, event.movementY);
+      } else {
+        environment.rotateCamera(event.movementX, event.movementY);
+      }
     } else {
       environment.updateHighlightedObject(event.offsetX, event.offsetY);
     }
   };
 
   const mouseScrollHandler = (event: WheelEvent) => {
-    cameraDistance = Math.min(Math.max(cameraDistance + event.deltaY / 100, 1), 50);
-    environment.setCameraRotation(cameraYaw, cameraPitch, cameraDistance);
+    environment.zoomCamera(event.deltaY);
   };
 </script>
 
-<div style="position: absolute; top: 35px;">
+<div style="position: absolute; top: 35px; z-index: 999">
   <button
     onclick={() => {
       environment.loadManualModel();
