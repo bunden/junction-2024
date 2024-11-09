@@ -4,30 +4,30 @@
   import * as Tabs from '$components/ui/tabs';
   import * as ToggleGroup from '$components/ui/toggle-group';
   import * as AlertDialog from '$components/ui/alert-dialog/index.js';
+  import * as Tooltip from "$components/ui/tooltip/index.js";
   import { Button } from '$components/ui/button';
   import { ScrollArea } from '$components/ui/scroll-area/index.js';
   import type { Snippet } from 'svelte';
   import Dropzone from 'svelte-file-dropzone';
+  import {currentView} from "../globalStore";
 
   let { children }: { children: Snippet } = $props();
 
-  const hasModel = true;
-
-  const is3dViable = $derived.by(() => {
-    return hasModel;
-  });
-
+  const hasModel = $state(true);
   let activeFloorKey: string | undefined = $state('1');
-
   let floors: number[] = $state([1]);
-
   let activeEditor: '2d' | '3d' = $state('2d');
+  let hasFloorPlan: boolean = $state(true);
 
   //let files: FileList | undefined = $state();
 
   let deleteBottomOffset = $derived.by(() => {
     const active: number = Number(activeFloorKey);
     return `${1.5 + active * 3.5}rem`;
+  });
+
+  const is3dViable = $derived.by(() => {
+    return hasModel;
   });
 
   const addFloor = () => {
@@ -45,28 +45,33 @@
     floors.splice(floors.length - 1, 1);
   };
 
-  let hasFloorPlan = $state(true);
-
   $effect(() => {
     if (activeFloorKey === undefined) {
       activeFloorKey = '1';
     }
   });
 
-  let files = $state({
-    accepted: [],
-    rejected: []
-  });
+  $effect(() => {
+    currentView.set(activeEditor)
+  })
 
-  function handleFilesSelect(e: any) {
-    const { acceptedFiles, fileRejections } = e.detail;
-    files.accepted = [...files.accepted, ...acceptedFiles];
-    files.rejected = [...files.rejected, ...fileRejections];
+  let file: File | undefined = $state(undefined);
+
+  const handleFilesSelect = (e: DragEvent) => {
+    const receivedFiles = e.dataTransfer?.files
+    const receivedTypes = e.dataTransfer?.types
+
+    if(receivedFiles && receivedTypes){
+      const allowedTypes = ['svg', 'png', 'jpg', 'jpeg'];
+      if(allowedTypes.includes(receivedTypes[0])){
+        file = receivedFiles[0]
+      }
+    }
   }
 </script>
 
 <main class="h-screen w-screen flex flex-col">
-  <nav>
+  <nav class="absolute top-0 left-0 right-0 h-8 bg-background z-30">
     <Menubar.Root class="h-8">
       <Menubar.Menu>
         <Menubar.Trigger>File</Menubar.Trigger>
@@ -82,7 +87,7 @@
     </Menubar.Root>
   </nav>
   <div class="w-full h-full background relative">
-    <div class="absolute top-4 left-12 right-12 h-16 flex justify-center">
+    <div class="absolute top-12 left-12 right-12 h-16 flex justify-center">
       {#if hasFloorPlan}
         <Tabs.Root bind:value={activeEditor}>
           <Tabs.List>
@@ -93,16 +98,18 @@
       {/if}
     </div>
 
-    {#if hasFloorPlan === false}
+    {#if !hasFloorPlan}
       <Dropzone
         class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 top-[1.75rem] left-[5.25rem] right-[5.25rem] rounded-3xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
-        on:drop={handleFilesSelect}
+        ondrop={handleFilesSelect}
       >
         <span class="text-4xl font-bold">Drop a floor plan here</span>
         <span>SVG, PNG or JPG</span>
       </Dropzone>
     {/if}
     {@render children?.()}
+
+    {file}
 
     <div class="absolute top-4 left-4 w-32 bottom-0 flex flex-col justify-end">
       <ScrollArea class="w-fit">
@@ -116,14 +123,22 @@
             </ToggleGroup.Item>
           {/each}
         </ToggleGroup.Root>
-        <Button
-          class="h-12 w-12 mb-6 mt-2 opacity-75transition-all delay-75 duration-150 hover:opacity-95 hover:bg-primary bg-primary hover:text-primary-foreground text-primary-foreground"
-          onclick={() => addFloor()}
-          variant="outline"
-          value="+"
-        >
-          <span class="material-symbols-outlined scale-75">add</span>
-        </Button>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild let:builder>
+            <Button
+              class="h-12 w-12 mb-6 mt-2 opacity-75transition-all delay-75 duration-150 hover:opacity-95 hover:bg-primary bg-primary hover:text-primary-foreground text-primary-foreground"
+              onclick={() => addFloor()}
+              builders={[builder]}
+              variant="outline"
+              value="+"
+            >
+              <span class="material-symbols-outlined scale-75">add</span>
+            </Button>
+          </Tooltip.Trigger>
+          <Tooltip.Content>
+            <p>Add a new floor</p>
+          </Tooltip.Content>
+        </Tooltip.Root>
       </ScrollArea>
       {#if floors.length > 1}
         <AlertDialog.Root>

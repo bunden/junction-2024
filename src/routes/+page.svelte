@@ -1,9 +1,25 @@
 <script lang="ts">
-  import { Button } from "$components/ui/button";
+  import {Viewer3d} from "$components/3d";
+  import {currentView} from "../globalStore";
+  import type {Component} from "svelte";
+
+  let View: Component | undefined = $state(undefined)
+
+  currentView.subscribe((value: string | undefined) => {
+    if(value === '2d'){
+      View = undefined
+    }
+
+    if(value === '3d'){
+      View = Viewer3d
+    }
+
+    if(value === undefined){
+      View = undefined
+    }
+  })
 </script>
 
-<h1 class="text-2xl text-red-600">Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
-
-<Button>Test</Button>
-
+{#if View}
+  <View/>
+{/if}
