@@ -14,7 +14,10 @@
     "prepare": "cd ../.. && husky src/Application.Client/.husky"
   },
   "dependencies": {
-    "fabric": "^6.4.3",
+    "canvas": "^2.11.2",
+    "konva": "^9.3.16",
+    "svelte-file-dropzone": "^2.0.9",
+    "svelte-konva": "^0.3.1",
     "three": "^0.170.0"
   },
   "devDependencies": {
@@ -34,11 +37,14 @@
     "globals": "^15.0.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
+    "lucide-svelte": "^0.456.0",
+    "mode-watcher": "^0.4.1",
     "postcss": "^8.4.47",
     "prettier": "^3.3.2",
     "prettier-plugin-svelte": "^3.2.6",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
+    "svelte-sonner": "^0.3.28",
     "tailwind-merge": "^2.5.4",
     "tailwind-variants": "^0.2.1",
     "tailwindcss": "^3.4.14",
