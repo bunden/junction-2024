@@ -8,10 +8,12 @@
   import * as Dialog from '$components/ui/dialog';
   import { Input } from '$components/ui/input/index.js';
   import { Label } from '$components/ui/label/index.js';
+  import * as Alert from "$components/ui/alert/index.js";
 
   import { fade } from 'svelte/transition';
   import { activeFloor, floorStates } from '../../globalStore';
   import type { Floor, Point } from '$utils/pointsToModel';
+  import {onMount} from "svelte";
 
   let circles: Konva.Circle[] = $state([]);
 
@@ -103,9 +105,19 @@
         });
       }
     }
+  }
 
-    console.log(JSON.stringify($floorStates?.get($activeFloor)));
-  };
+  let headsUp = $state(false)
+
+  onMount(() => {
+    window.setTimeout(() => {
+      headsUp = true
+    }, 1000)
+
+    window.setTimeout(() => {
+      headsUp = false
+    }, 10000)
+  })
 </script>
 
 <span class={hidden ? 'hidden' : ''}>
@@ -113,7 +125,18 @@
     <FloorPlanner bind:circles bind:isClosed {blueprint} />
   </Stage>
 
-  {#if isClosed}
+  {#if headsUp}
+  <span transition:fade={{duration: 500}}>
+    <Alert.Root class="absolute top-12 right-4 w-80">
+    <Alert.Title>How to get started?</Alert.Title>
+    <Alert.Description
+    >Draw outer lines of the floor by selecting the corners!</Alert.Description
+    >
+  </Alert.Root>
+  </span>
+{/if}
+
+{#if isClosed}
     <span transition:fade={{ duration: 150 }}>
       <Card.Root class="w-96 absolute bottom-4 -translate-x-1/2 left-1/2 right-1/2">
         <Card.Header class="mb-4">
