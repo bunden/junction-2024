@@ -10,15 +10,15 @@
   let { meterStickLayer = $bindable(), onMeterStickLengthChange }: MeterStickProps = $props();
 
   let leftCircle: Konva.Circle = new Konva.Circle({
-    x: 50,
-    y: 50,
+    x: 200,
+    y: 200,
     radius: 5,
     fill: 'rgba(100, 100, 255, 1)',
     draggable: true
   });
   let rightCircle: Konva.Circle = new Konva.Circle({
-    x: 250,
-    y: 50,
+    x: 400,
+    y: 200,
     radius: 5,
     fill: 'rgba(100, 100, 255, 1)',
     draggable: true
