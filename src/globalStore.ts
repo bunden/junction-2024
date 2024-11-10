@@ -14,7 +14,7 @@ export const floorStates: Writable<
       innerWallVectors?: WallParameters[];
     }
   >
-> = writable(new Map([['1', {}]]));
+> = writable(new Map([['1', { blueprint: '/example.jpeg' }]]));
 
 export const activeFloor: Writable<string> = writable('1');
 
