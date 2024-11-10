@@ -4,15 +4,13 @@
   import * as Tabs from '$components/ui/tabs';
   import * as ToggleGroup from '$components/ui/toggle-group';
   import * as AlertDialog from '$components/ui/alert-dialog/index.js';
-  import * as Tooltip from "$components/ui/tooltip/index.js";
+  import * as Tooltip from '$components/ui/tooltip/index.js';
   import { Button } from '$components/ui/button';
   import { ScrollArea } from '$components/ui/scroll-area/index.js';
   import type { Snippet } from 'svelte';
-  import {activeFloor, floorStates, currentView} from "../globalStore";
+  import { activeFloor, floorStates, currentView, exportModel } from '../globalStore';
 
-  import {
-    fade,
-  } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
 
   let { children }: { children: Snippet } = $props();
 
@@ -51,8 +49,8 @@
   });
 
   $effect(() => {
-    currentView.set(activeEditor)
-  })
+    currentView.set(activeEditor);
+  });
 </script>
 
 <main class="h-screen w-screen flex flex-col">
@@ -64,7 +62,11 @@
           <Menubar.Item>
             Import <Menubar.Shortcut>Alt + I</Menubar.Shortcut>
           </Menubar.Item>
-          <Menubar.Item>
+          <Menubar.Item
+            onclick={() => {
+              $exportModel = true;
+            }}
+          >
             Export <Menubar.Shortcut>Alt + E</Menubar.Shortcut>
           </Menubar.Item>
         </Menubar.Content>
@@ -72,10 +74,9 @@
     </Menubar.Root>
   </nav>
   <div class="w-full h-full background relative">
-
     <div class="absolute top-12 left-1/2 right-1/2 -translate-x-1/2 h-16 flex z-30 justify-center">
       {#if $floorStates?.get($activeFloor) !== undefined}
-        <span transition:fade={{duration: 150, delay: 150}}>
+        <span transition:fade={{ duration: 150, delay: 150 }}>
           <Tabs.Root bind:value={activeEditor} class="w-fit">
             <Tabs.List>
               <Tabs.Trigger value="2d">2D Editor</Tabs.Trigger>

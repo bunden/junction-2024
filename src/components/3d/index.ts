@@ -3,6 +3,7 @@ import Root from './Viewer3d.svelte';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { expand, type Floor, type Point, generateTopAndBottom } from '$utils/pointsToModel';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 class Environment3d {
   canvas: HTMLCanvasElement;
@@ -142,6 +143,26 @@ class Environment3d {
         console.error(error);
         URL.revokeObjectURL(url);
       }
+    );
+  }
+
+  exportModel() {
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      this.scene,
+      function (glb) {
+        const blob = new Blob([glb as ArrayBuffer], { type: 'application/octet-stream' });
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = 'model.glb';
+        link.click();
+      },
+      function (error) {
+        console.log(error);
+      },
+      { binary: true }
     );
   }
 

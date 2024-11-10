@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Environment3d } from './index';
-  import { floorStates, objectSelected, buildingTransparent } from '../../globalStore';
-  import { Button } from "$components/ui/button/index.js";
+  import { floorStates, objectSelected, buildingTransparent, exportModel } from '../../globalStore';
+  import { Button } from '$components/ui/button/index.js';
 
-  import Dropzone from "svelte-file-dropzone";
+  import Dropzone from 'svelte-file-dropzone';
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
@@ -34,6 +34,13 @@
   floorStates.subscribe((floorStates) => {
     if (!environment) return;
     environment.reloadBuilding(floorStates, $buildingTransparent);
+  });
+
+  exportModel.subscribe((bool) => {
+    if (bool) {
+      environment.exportModel();
+      bool = false;
+    }
   });
 
   const mouseUpHandler = (event: MouseEvent) => {
@@ -78,22 +85,22 @@
 
 <span class={hidden ? 'hidden' : ''}>
   <Dropzone
-          class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 h-16 w-72 left-1/2 right-1/2 -translate-x-1/2 rounded-xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
-          noClick
-          ondrop={handleFilesSelect}
-        >
-        <span class="font-semibold text-lg">Drop a 3D model to import</span>
+    class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 h-16 w-72 left-1/2 right-1/2 -translate-x-1/2 rounded-xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
+    noClick
+    ondrop={handleFilesSelect}
+  >
+    <span class="font-semibold text-lg">Drop a 3D model to import</span>
   </Dropzone>
 
-   <Button
-     style="z-index: 999"
-     class="absolute bottom-[1.75rem] right-[1.75rem] transition duration-150"
-     onclick={() => {
-        environment.removeSelectedObject();
-      }}
-     variant="destructive"
-     disabled={!$objectSelected}>Delete selected</Button
-   >
+  <Button
+    style="z-index: 999"
+    class="absolute bottom-[1.75rem] right-[1.75rem] transition duration-150"
+    onclick={() => {
+      environment.removeSelectedObject();
+    }}
+    variant="destructive"
+    disabled={!$objectSelected}>Delete selected</Button
+  >
 
   <div style="position: absolute; top: 35px; z-index: 999">
     <input
@@ -108,7 +115,6 @@
         environment.loadManualModel();
       }}>Load manual model</button
     >
-
   </div>
 
   <canvas

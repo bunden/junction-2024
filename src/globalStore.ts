@@ -22,3 +22,5 @@ export const activeFloor: Writable<string> = writable('1');
 export const objectSelected: Writable<boolean> = writable(false);
 
 export const buildingTransparent: Writable<boolean> = writable(false);
+
+export const exportModel: Writable<boolean> = writable(false);
