@@ -2,7 +2,6 @@ import Root from './Viewer3d.svelte';
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import util from "node:util";
 import { type Floor, generateTopAndBottom, expand } from "$utils/pointsToModel";
 
 class Environment3d {
@@ -148,33 +147,44 @@ class Environment3d {
   }
 
   loadManualModel() {
-    const geometry = new THREE.BufferGeometry();
+    const test: Floor[] = [];
+    const floor1: Floor = {
+      number: 1,
+      height: 3,
+      outerWallCorners: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 8, y: 4}, {x: 4, y: 8}, {x: 0, y: 8}],
+      outerWallWidth: 0.5,
+      innerWallVectors: [{startPos: {x: 0, y: 0}, endPos: {x: 0, y: 0}, wallWidth: 4}]
+    }
+    const floor2: Floor = {
+      number: 1,
+      height: 2,
+      outerWallCorners: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 0, y: 4}],
+      outerWallWidth: 0.5,
+      innerWallVectors: [{startPos: {x: 0, y: 0}, endPos: {x: 0, y: 0}, wallWidth: 4}]
+    }
 
-    const vertices = new Float32Array([
-      0, 0, 0.25, 4, 0, -0.25, 4, 0, 0.25, 0, 0, 0.25, 0, 0, -0.25, 4, 0, -0.25, 0, 0, 0.25, 0, 3, -0.25, 0, 0, -0.25,
-      0, 0, 0.25, 0, 3, 0.25, 0, 3, -0.25, 4, 0, 0.25, 0, 3, 0.25, 0, 0, 0.25, 4, 0, 0.25, 4, 3, 0.25, 0, 3, 0.25, 4, 0,
-      -0.25, 4, 3, 0.25, 4, 0, 0.25, 4, 0, -0.25, 4, 3, -0.25, 4, 3, 0.25, 0, 0, -0.25, 4, 3, -0.25, 4, 0, -0.25, 0, 0,
-      -0.25, 0, 3, -0.25, 4, 3, -0.25, 0, 3, 0.25, 4, 3, 0.25, 4, 3, -0.25, 0, 3, 0.25, 4, 3, -0.25, 0, 3, -0.25, 3.75,
-      0, 0, 4.25, 0, 4, 3.75, 0, 4, 3.75, 0, 0, 4.25, 0, 0, 4.25, 0, 4, 3.75, 0, 0, 4.25, 3, 0, 4.25, 0, 0, 3.75, 0, 0,
-      3.75, 3, 0, 4.25, 3, 0, 3.75, 0, 4, 3.75, 3, 0, 3.75, 0, 0, 3.75, 0, 4, 3.75, 3, 4, 3.75, 3, 0, 4.25, 0, 4, 3.75,
-      3, 4, 3.75, 0, 4, 4.25, 0, 4, 4.25, 3, 4, 3.75, 3, 4, 4.25, 0, 0, 4.25, 3, 4, 4.25, 0, 4, 4.25, 0, 0, 4.25, 3, 0,
-      4.25, 3, 4, 3.75, 3, 0, 3.75, 3, 4, 4.25, 3, 4, 3.75, 3, 0, 4.25, 3, 4, 4.25, 3, 0, 4, 0, 3.75, 0, 0, 4.25, 0, 0,
-      3.75, 4, 0, 3.75, 4, 0, 4.25, 0, 0, 4.25, 4, 0, 3.75, 4, 3, 4.25, 4, 0, 4.25, 4, 0, 3.75, 4, 3, 3.75, 4, 3, 4.25,
-      0, 0, 3.75, 4, 3, 3.75, 4, 0, 3.75, 0, 0, 3.75, 0, 3, 3.75, 4, 3, 3.75, 0, 0, 4.25, 0, 3, 3.75, 0, 0, 3.75, 0, 0,
-      4.25, 0, 3, 4.25, 0, 3, 3.75, 4, 0, 4.25, 0, 3, 4.25, 0, 0, 4.25, 4, 0, 4.25, 4, 3, 4.25, 0, 3, 4.25, 4, 3, 3.75,
-      0, 3, 3.75, 0, 3, 4.25, 4, 3, 3.75, 0, 3, 4.25, 4, 3, 4.25, 0.25, 0, 4, -0.25, 0, 0, 0.25, 0, 0, 0.25, 0, 4,
-      -0.25, 0, 4, -0.25, 0, 0, 0.25, 0, 4, -0.25, 3, 4, -0.25, 0, 4, 0.25, 0, 4, 0.25, 3, 4, -0.25, 3, 4, 0.25, 0, 0,
-      0.25, 3, 4, 0.25, 0, 4, 0.25, 0, 0, 0.25, 3, 0, 0.25, 3, 4, -0.25, 0, 0, 0.25, 3, 0, 0.25, 0, 0, -0.25, 0, 0,
-      -0.25, 3, 0, 0.25, 3, 0, -0.25, 0, 4, -0.25, 3, 0, -0.25, 0, 0, -0.25, 0, 4, -0.25, 3, 4, -0.25, 3, 0, 0.25, 3, 4,
-      0.25, 3, 0, -0.25, 3, 0, 0.25, 3, 4, -0.25, 3, 0, -0.25, 3, 4
-    ]);
+    test.push(floor1)
+    test.push(floor2)
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    geometry.computeVertexNormals();
-    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', transparent: true, opacity: 0.5 });
-    const mesh = new THREE.Mesh(geometry, material);
+    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: false });
 
-    this.scene.add(mesh);
+    const buildingGeometry = expand(test)
+
+    for (let i = 0; i < buildingGeometry.length; i++) {
+      for (let j = 0; j < buildingGeometry[i].length; j++) {
+        const wall_mesh = new THREE.Mesh(buildingGeometry[i][j], material)
+
+        this.scene.add(wall_mesh)
+      }
+    }
+
+    const planes = generateTopAndBottom(test)
+
+    for (let i = 0; i < planes.length; i++) {
+      const plane_mesh = new THREE.Mesh(planes[i], material)
+
+      this.scene.add(plane_mesh)
+    }
   }
 }
 
