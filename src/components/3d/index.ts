@@ -175,6 +175,8 @@ class Environment3d {
   removeSelectedObject() {
     if (this.selectedObject) {
       this.scene.remove(this.selectedObject);
+      this.selectedObject = undefined;
+      this.selectedObjectMaterial = undefined;
     }
   }
 

@@ -98,6 +98,7 @@
     class="absolute bottom-[1.75rem] right-[1.75rem] transition duration-150"
     onclick={() => {
       environment.removeSelectedObject();
+      $objectSelected = false;
     }}
     variant="destructive"
     disabled={!$objectSelected}>Delete selected</Button
