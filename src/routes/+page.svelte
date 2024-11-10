@@ -45,6 +45,7 @@
 {#if $floorStates === undefined || currentBlueprint === undefined}
   <Dropzone
     class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 top-14 left-[5.25rem] right-[5.25rem] rounded-3xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
+    noClick
     ondrop={handleFilesSelect}
   >
     <span class="text-4xl font-bold">Drop a floor plan here</span>

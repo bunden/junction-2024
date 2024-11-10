@@ -1,6 +1,9 @@
 <script lang="ts">
   import { Environment3d } from './index';
   import { floorStates, objectSelected, buildingTransparent } from '../../globalStore';
+  import { Button } from "$components/ui/button/index.js";
+
+  import Dropzone from "svelte-file-dropzone";
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
@@ -19,6 +22,14 @@
   $effect(() => {
     environment = new Environment3d(canvas);
   });
+
+  const handleFilesSelect = (e: DragEvent) => {
+    const receivedFiles = e.dataTransfer?.files;
+
+    if (receivedFiles) {
+      environment.loadAdditionalModel(receivedFiles[0]);
+    }
+  };
 
   floorStates.subscribe((floorStates) => {
     if (!environment) return;
@@ -66,23 +77,25 @@
 </script>
 
 <span class={hidden ? 'hidden' : ''}>
-  <div style="position: absolute; top: 35px; z-index: 999">
-    <input
-      type="file"
-      id="fileInput"
-      onchange={(event) => {
-        if (!event.target) return;
-        const files = (event.target as HTMLInputElement).files;
-        if (!files) return;
-        environment.loadAdditionalModel(files[0]);
-      }}
-    />
-    <button
-      onclick={() => {
+  <Dropzone
+          class="absolute bg-accent text-accent-foreground bottom-[1.75rem] gap-2 h-16 w-72 left-1/2 right-1/2 -translate-x-1/2 rounded-xl bg-opacity-50 opacity-50 outline outline-1 outline-offset-4 outline-accent-foreground text-center flex flex-col justify-center"
+          noClick
+          ondrop={handleFilesSelect}
+        >
+        <span class="font-semibold text-lg">Drop a 3D model to import</span>
+  </Dropzone>
+
+   <Button
+     style="z-index: 999"
+     class="absolute bottom-[1.75rem] right-[1.75rem] transition duration-150"
+     onclick={() => {
         environment.removeSelectedObject();
       }}
-      disabled={!$objectSelected}>Delete</button
-    >
+     variant="destructive"
+     disabled={!$objectSelected}>Delete selected</Button
+   >
+
+  <div style="position: absolute; top: 35px; z-index: 999">
     <input
       type="checkbox"
       onchange={() => {
@@ -90,6 +103,12 @@
         environment.reloadBuilding($floorStates, $buildingTransparent);
       }}
     />
+    <button
+      onclick={() => {
+        environment.loadManualModel();
+      }}>Load manual model</button
+    >
+
   </div>
 
   <canvas
