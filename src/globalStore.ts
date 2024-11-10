@@ -10,6 +10,8 @@ export const floorStates: Writable<
       blueprint?: string;
       outerWallCorners?: Point[];
       height?: number;
+      scale?: number;
+      meterStickLengthPx?: number;
       outerWallWidth?: number;
       innerWallVectors?: WallParameters[];
     }

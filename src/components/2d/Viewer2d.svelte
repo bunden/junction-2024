@@ -14,6 +14,7 @@
   import { activeFloor, floorStates } from '../../globalStore';
   import type { Floor, Point } from '$utils/pointsToModel';
   import { onMount } from 'svelte';
+  import MeterStick from './MeterStick.svelte';
 
   const notificationTime = 10000;
 
@@ -27,6 +28,8 @@
   let successAlert = $state(false);
   let imageLayer: { [key: string]: Konva.Layer | undefined } = $state({});
   let shapeLayer: { [key: string]: Konva.Layer | undefined } = $state({});
+  let meterStickLayer: Konva.Layer | undefined = $state();
+  let length: number = $state(5);
 
   const setCircles = (key: string, value: Konva.Circle[] | undefined) => (circles[key] = value);
   const setIsClosed = (key: string, value: boolean | undefined) => (isClosed[key] = value);
@@ -83,6 +86,7 @@
   let floor: Floor = $state({
     number: 1,
     height: 3,
+    scale: 5,
     outerWallCorners: [],
     outerWallWidth: 0.25,
     innerWallVectors: []
@@ -104,6 +108,8 @@
           const newValue = {
             ...value,
             height: floor.height,
+            scale: floor.scale,
+            meterStickLengthPx: length,
             innerWallVectors: [],
             outerWallCorners: getPoints(circles[key]!),
             outerWallWidth: floor.outerWallWidth
@@ -165,6 +171,7 @@
         {blueprint}
       />
     {/each}
+    <MeterStick bind:meterStickLayer onMeterStickLengthChange={(l) => (length = l)} />
   </Stage>
 
   {#if successAlert}
@@ -212,12 +219,16 @@
               </Dialog.Header>
               <div class="grid gap-4 py-4">
                 <div class="grid grid-cols-4 items-center gap-4">
-                  <Label for="width" class="text-right">Wall width</Label>
+                  <Label for="width" class="text-right">Wall width (m)</Label>
                   <Input id="width" bind:value={floor.outerWallWidth} class="col-span-3" />
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
-                  <Label for="height" class="text-right">Floor height</Label>
+                  <Label for="height" class="text-right">Floor height (m)</Label>
                   <Input id="height" bind:value={floor.height} class="col-span-3" />
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                  <Label for="scale" class="text-right">Length of meter stick (m)</Label>
+                  <Input id="scale" bind:value={floor.scale} class="col-span-3" />
                 </div>
               </div>
               <Dialog.Footer>

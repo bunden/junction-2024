@@ -69,11 +69,13 @@ class Environment3d {
       floorStates
         ?.entries()
         .map(([key, value]): Floor => {
+          const scalingFactor = value.scale / value.meterStickLengthPx;
           const floor: Floor = {
             number: Number(key),
             height: value.height,
+            scale: value.scale,
             outerWallCorners: value.outerWallCorners?.map((point: Point) => {
-              return { x: point.x / 100.0, y: point.y / 100.0 };
+              return { x: point.x * scalingFactor, y: point.y * scalingFactor };
             }),
             outerWallWidth: value.outerWallWidth,
             innerWallVectors: value.innerWallVectors
@@ -226,59 +228,6 @@ class Environment3d {
 
   rotateSelectedObject(rotationAmount: number) {
     this.selectedObject?.rotateY(rotationAmount / 2000);
-  }
-
-  loadManualModel() {
-    const test: Floor[] = [];
-    const floor1: Floor = {
-      number: 1,
-      height: 3,
-      outerWallCorners: [
-        { x: 0, y: 0 },
-        { x: 4, y: 0 },
-        { x: 4, y: 4 },
-        { x: 8, y: 4 },
-        { x: 4, y: 8 },
-        { x: 0, y: 8 }
-      ],
-      outerWallWidth: 0.5,
-      innerWallVectors: [{ startPos: { x: 0, y: 0 }, endPos: { x: 0, y: 0 }, wallWidth: 4 }]
-    };
-    const floor2: Floor = {
-      number: 1,
-      height: 2,
-      outerWallCorners: [
-        { x: 0, y: 0 },
-        { x: 4, y: 0 },
-        { x: 4, y: 4 },
-        { x: 0, y: 4 }
-      ],
-      outerWallWidth: 0.5,
-      innerWallVectors: [{ startPos: { x: 0, y: 0 }, endPos: { x: 0, y: 0 }, wallWidth: 4 }]
-    };
-
-    test.push(floor1);
-    test.push(floor2);
-
-    const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: false });
-
-    const buildingGeometry = expand(test);
-
-    for (let i = 0; i < buildingGeometry.length; i++) {
-      for (let j = 0; j < buildingGeometry[i].length; j++) {
-        const wall_mesh = new THREE.Mesh(buildingGeometry[i][j], material);
-
-        this.scene.add(wall_mesh);
-      }
-    }
-
-    const planes = generateTopAndBottom(test);
-
-    for (let i = 0; i < planes.length; i++) {
-      const plane_mesh = new THREE.Mesh(planes[i], material);
-
-      this.scene.add(plane_mesh);
-    }
   }
 }
 

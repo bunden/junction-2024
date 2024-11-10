@@ -16,6 +16,7 @@ export interface WallParameters {
 export interface Floor {
   number: number;
   height: number;
+  scale: number;
   outerWallCorners: Point[];
   outerWallWidth: number;
   innerWallVectors?: WallParameters[];
