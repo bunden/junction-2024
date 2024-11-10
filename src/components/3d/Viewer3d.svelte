@@ -64,8 +64,9 @@
       const modifier = event.getModifierState('Control');
       environment.moveSelectedObject(event.movementX, event.movementY, movementSpeed, modifier);
     } else if (mouseDown) {
-      if (event.getModifierState('Control')) {
-        environment.moveCameraTarget(event.movementX, event.movementY);
+      if (event.getModifierState('Shift')) {
+        const modifier = event.getModifierState('Control');
+        environment.moveCameraTarget(event.movementX, event.movementY, modifier);
       } else {
         environment.rotateCamera(event.movementX, event.movementY);
       }

@@ -16,9 +16,9 @@ class Environment3d {
   selectedObjectMaterial?: THREE.Material | THREE.Material[] = undefined;
 
   cameraYaw: number = 0;
-  cameraPitch: number = 0;
+  cameraPitch: number = 20;
   cameraDistance: number = 10;
-  cameraTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  cameraTarget: THREE.Vector3 = new THREE.Vector3(0, 1, 0);
 
   buildingMaterialSolid = new THREE.MeshStandardMaterial({
     color: '#FF5555'
@@ -109,11 +109,17 @@ class Environment3d {
     this.updateCameraPosition();
   }
 
-  moveCameraTarget(xMovement: number, yMovement: number) {
+  moveCameraTarget(xMovement: number, yMovement: number, modifier: boolean) {
     const movementSpeed = this.cameraDistance * 0.001;
-    const yawRad = (this.cameraYaw * Math.PI) / 180;
-    this.cameraTarget.x -= xMovement * movementSpeed * Math.cos(yawRad) + yMovement * movementSpeed * Math.sin(yawRad);
-    this.cameraTarget.z -= xMovement * movementSpeed * -Math.sin(yawRad) + yMovement * movementSpeed * Math.cos(yawRad);
+    if (!modifier) {
+      const yawRad = (this.cameraYaw * Math.PI) / 180;
+      this.cameraTarget.x -=
+        xMovement * movementSpeed * Math.cos(yawRad) + yMovement * movementSpeed * Math.sin(yawRad);
+      this.cameraTarget.z -=
+        xMovement * movementSpeed * -Math.sin(yawRad) + yMovement * movementSpeed * Math.cos(yawRad);
+    } else {
+      this.cameraTarget.y += yMovement * movementSpeed;
+    }
     this.updateCameraPosition();
   }
 
