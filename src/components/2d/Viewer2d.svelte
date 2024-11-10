@@ -15,18 +15,23 @@
   import type { Floor, Point } from '$utils/pointsToModel';
   import { onMount } from 'svelte';
 
-  const notificationTime = 10000
+  const notificationTime = 10000;
 
-  let circles: Konva.Circle[] = $state([]);
+  let circles: { [key: string]: Konva.Circle[] | undefined } = $state({});
 
   let width = $state(0);
   let height = $state(0);
-  let isClosed = $state(false);
+  let isClosed: { [key: string]: boolean | undefined } = $state({});
   let notifyStart = $state(false);
-  let dialogOpen = $state(false)
-  let successAlert = $state(false)
-  let imageLayer: Konva.Layer | undefined = $state();
-  let shapeLayer: Konva.Layer | undefined = $state();
+  let dialogOpen = $state(false);
+  let successAlert = $state(false);
+  let imageLayer: { [key: string]: Konva.Layer | undefined } = $state({});
+  let shapeLayer: { [key: string]: Konva.Layer | undefined } = $state({});
+
+  const setCircles = (key: string, value: Konva.Circle[] | undefined) => (circles[key] = value);
+  const setIsClosed = (key: string, value: boolean | undefined) => (isClosed[key] = value);
+  const setImageLayer = (key: string, value: Konva.Layer | undefined) => (imageLayer[key] = value);
+  const setShapeLayer = (key: string, value: Konva.Layer | undefined) => (shapeLayer[key] = value);
 
   let stage: Konva.Stage | undefined = $state();
 
@@ -35,7 +40,7 @@
     hidden: boolean;
   }
 
-  let { blueprint, hidden }: Props = $props();
+  let { hidden }: Props = $props();
 
   const scaleBy = 1.15;
   let eventHandlerRegistered = false;
@@ -83,7 +88,7 @@
     innerWallVectors: []
   });
 
-  const getPoints = (): Point[] => {
+  const getPoints = (circles: Konva.Circle[]): Point[] => {
     return circles.map((circle) => {
       return {
         x: circle.x(),
@@ -94,32 +99,38 @@
 
   const submitFloor = () => {
     if ($floorStates !== undefined) {
-      const current = $floorStates.get($activeFloor);
-      if (current?.blueprint) {
-        $floorStates = $floorStates.set($activeFloor, {
-          ...current,
-          height: floor.height,
-          innerWallVectors: [],
-          outerWallCorners: getPoints(),
-          outerWallWidth: floor.outerWallWidth
-        });
+      console.log(getPoints(circles['1']!));
+      console.log(getPoints(circles['2']!));
+      $floorStates = new Map(
+        $floorStates.entries().map(([key, value]) => {
+          const newValue = {
+            ...value,
+            height: floor.height,
+            innerWallVectors: [],
+            outerWallCorners: getPoints(circles[key]!),
+            outerWallWidth: floor.outerWallWidth
+          };
 
-        successAlert = true
-        window.setTimeout(() => {
-          successAlert = false;
-        }, notificationTime);
-      }
+          console.log(newValue);
+
+          return [key, newValue];
+        })
+      );
+
+      successAlert = true;
+      window.setTimeout(() => {
+        successAlert = false;
+      }, notificationTime);
     }
   };
 
   let clearCanvas = () => {
+    shapeLayer[$activeFloor]?.destroyChildren();
+    shapeLayer[$activeFloor]?.draw();
 
-    shapeLayer?.destroyChildren()
-    shapeLayer?.draw()
-
-    circles = []
-    isClosed = false
-  }
+    circles[$activeFloor] = [];
+    isClosed[$activeFloor] = false;
+  };
 
   onMount(() => {
     window.setTimeout(() => {
@@ -130,11 +141,32 @@
       notifyStart = false;
     }, notificationTime + 1000);
   });
+
+  activeFloor.subscribe((floor) => {
+    $floorStates.keys().forEach((key) => {
+      if (key === floor) {
+        imageLayer[key]?.show().moveToTop();
+        shapeLayer[key]?.moveToTop();
+        return;
+      }
+      imageLayer[key]?.hide();
+    });
+  });
 </script>
 
 <span class={hidden ? 'hidden' : ''}>
   <Stage bind:handle={stage} config={{ width, height }}>
-    <FloorPlanner bind:imageLayer bind:shapeLayer bind:circles bind:isClosed {blueprint} />
+    {#each $floorStates.entries() as [key, { blueprint }]}
+      <FloorPlanner
+        circles={circles[key]}
+        isClosed={isClosed[key]}
+        setIsClosed={(v) => setIsClosed(key, v)}
+        setCircles={(v) => setCircles(key, v)}
+        setImageLayer={(v) => setImageLayer(key, v)}
+        setShapeLayer={(v) => setShapeLayer(key, v)}
+        {blueprint}
+      />
+    {/each}
   </Stage>
 
   {#if successAlert}
@@ -155,7 +187,7 @@
     </span>
   {/if}
 
-  {#if isClosed}
+  {#if isClosed[$activeFloor]}
     <span transition:fade={{ duration: 150 }}>
       <Card.Root class="w-96 absolute bottom-4 -translate-x-1/2 left-1/2 right-1/2">
         <Card.Header class="mb-4">
@@ -163,9 +195,18 @@
           <Card.Description>Do you want to continue?</Card.Description>
         </Card.Header>
         <Card.Footer class="flex justify-between">
-          <Button onclick={() => {clearCanvas()}}>Clear</Button>
+          <Button
+            onclick={() => {
+              clearCanvas();
+            }}>Clear</Button
+          >
           <Dialog.Root bind:open={dialogOpen}>
-            <Dialog.Trigger onclick={() => {dialogOpen = true}} class={buttonVariants({ variant: 'outline' })}>Continue</Dialog.Trigger>
+            <Dialog.Trigger
+              onclick={() => {
+                dialogOpen = true;
+              }}
+              class={buttonVariants({ variant: 'outline' })}>Continue</Dialog.Trigger
+            >
             <Dialog.Content class="sm:max-w-[425px]">
               <Dialog.Header>
                 <Dialog.Title>Add a floor</Dialog.Title>
@@ -182,10 +223,13 @@
                 </div>
               </div>
               <Dialog.Footer>
-                <Button type="submit" onclick={() => {
-                  submitFloor()
-                  dialogOpen = false
-                }}>Convert to 3D</Button>
+                <Button
+                  type="submit"
+                  onclick={() => {
+                    submitFloor();
+                    dialogOpen = false;
+                  }}>Convert to 3D</Button
+                >
               </Dialog.Footer>
             </Dialog.Content>
           </Dialog.Root>

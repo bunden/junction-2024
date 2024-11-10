@@ -6,12 +6,18 @@
   interface FloorPlannerProps {
     blueprint: string | undefined;
     isClosed: boolean;
-    circles: Konva.Circle[];
-    imageLayer: Konva.Layer | undefined;
-    shapeLayer: Konva.Layer | undefined
+    circles: Konva.Circle[] | undefined;
+    setIsClosed: (v: boolean | undefined) => void;
+    setCircles: (v: Konva.Circle[]) => void;
+    setImageLayer: (v: Konva.Layer | undefined) => void;
+    setShapeLayer: (v: Konva.Layer | undefined) => void;
   }
 
-  let { blueprint, isClosed = $bindable(), circles = $bindable(), imageLayer = $bindable(), shapeLayer = $bindable()  }: FloorPlannerProps = $props();
+  let { blueprint, isClosed, circles, setIsClosed, setCircles, setImageLayer, setShapeLayer }: FloorPlannerProps =
+    $props();
+
+  let imageLayer: Konva.Layer | undefined = $state();
+  let shapeLayer: Konva.Layer | undefined = $state();
 
   let image: HTMLImageElement | undefined = $state();
   let pos = $state({ x: 0, y: 0 });
@@ -21,7 +27,7 @@
   let poly: Konva.Line | undefined = undefined;
 
   const calculatePolyShape = () => {
-    if (isClosed && shapeLayer) {
+    if (isClosed && shapeLayer && circles) {
       const points = circles
         .map((circle) => {
           return [circle.x(), circle.y()];
@@ -45,7 +51,23 @@
     }
   };
 
-  // Center and fit the image
+  $effect(() => {
+    if (circles !== undefined) return;
+    setIsClosed(false);
+  });
+  $effect(() => {
+    if (circles) return;
+    setCircles([]);
+  });
+  $effect(() => {
+    if (!imageLayer) return;
+    setImageLayer(imageLayer);
+  });
+  $effect(() => {
+    if (!shapeLayer) return;
+    setShapeLayer(shapeLayer);
+  });
+
   $effect(() => {
     if (!imageLayer || !blueprint) return;
 
@@ -102,9 +124,10 @@
         draggable: true
       });
 
+      if (!circles) return;
       if (circles.length == 0) {
         shapeLayer.add(circle);
-        circles.push(circle);
+        setCircles([...circles, circle]);
         return;
       }
 
@@ -129,7 +152,7 @@
         );
 
         shapeLayer.add(line);
-        isClosed = true;
+        setIsClosed(true);
 
         line.moveToBottom();
         return;
@@ -149,7 +172,7 @@
       shapeLayer.add(circle);
       shapeLayer.add(line);
       line.moveToBottom();
-      circles.push(circle);
+      setCircles([...circles, circle]);
     });
   });
 
