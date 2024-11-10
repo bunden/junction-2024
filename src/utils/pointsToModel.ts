@@ -487,18 +487,15 @@ export function generateTopAndBottom(floors: Floor[]) {
     }
     const first = floors[floorNumber].outerWallCorners[0];
 
-    points.push(first.x);
-    points.push(first.y);
-
     const Vertices2d = earcut(points);
 
     const bottomVertices = [];
     const topVertices = [];
 
     for (let i = 0; i < Vertices2d.length; i += 3) {
-      const pointA = floors[floorNumber].outerWallCorners[Vertices2d[i]];
-      const pointB = floors[floorNumber].outerWallCorners[Vertices2d[i + 1]];
-      const pointC = floors[floorNumber].outerWallCorners[Vertices2d[i + 2]];
+      const pointA = points[Vertices2d[i]];
+      const pointB = points[Vertices2d[i + 1]];
+      const pointC = points[Vertices2d[i + 2]];
 
       bottomVertices.push(pointA.x);
       bottomVertices.push(currentFloorHeight);
