@@ -60,30 +60,40 @@ class Environment3d {
     this.updateCameraPosition();
   }
 
-  reloadBuilding(floorStates: any, transparent: boolean) {
+  reloadBuilding(floorStates: Map<string, any> | undefined, transparent: boolean) {
     const buildingGroup = this.scene.getObjectByName('building_group');
     if (!buildingGroup) return;
     buildingGroup.clear();
-    floorStates.forEach((value: any, key: string) => {
-      if (!value.outerWallCorners) return;
-      console.log(value.outerWallCorners[0].x);
-      console.log(value.outerWallCorners[0].y);
-      const floor: Floor = {
-        number: Number(key),
-        height: value.height,
-        outerWallCorners: value.outerWallCorners.map((point: Point) => {
-          return { x: point.x / 100.0, y: point.y / 100.0 };
-        }),
-        outerWallWidth: value.outerWallWidth,
-        innerWallVectors: value.innerWallVectors
-      };
-      const floorVertices = expand([floor]);
-      const floorGeometry = new THREE.BufferGeometry();
-      floorGeometry.setAttribute('position', new THREE.BufferAttribute(floorVertices, 3));
-      floorGeometry.computeVertexNormals();
-      const floorMaterial = transparent ? this.buildingMaterialTransparent : this.buildingMaterialSolid;
-      const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-      buildingGroup.add(floorMesh);
+    const floors: Floor[] =
+      floorStates
+        ?.entries()
+        .map(([key, value]): Floor => {
+          const floor: Floor = {
+            number: Number(key),
+            height: value.height,
+            outerWallCorners: value.outerWallCorners?.map((point: Point) => {
+              return { x: point.x / 100.0, y: point.y / 100.0 };
+            }),
+            outerWallWidth: value.outerWallWidth,
+            innerWallVectors: value.innerWallVectors
+          };
+          return floor;
+        })
+        .filter((floor) => floor.outerWallCorners)
+        .toArray() ?? [];
+    const buildingGeometries = expand(floors);
+    buildingGeometries.forEach((geometryArray) => {
+      geometryArray.forEach((geometry) => {
+        const buildingMaterial = transparent ? this.buildingMaterialTransparent : this.buildingMaterialSolid;
+        const mesh = new THREE.Mesh(geometry, buildingMaterial);
+        buildingGroup.add(mesh);
+      });
+    });
+    const floorAndCeilingGeometries = generateTopAndBottom(floors);
+    floorAndCeilingGeometries.forEach((geometry) => {
+      const buildingMaterial = transparent ? this.buildingMaterialTransparent : this.buildingMaterialSolid;
+      const mesh = new THREE.Mesh(geometry, buildingMaterial);
+      buildingGroup.add(mesh);
     });
   }
 
