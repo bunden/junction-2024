@@ -2,6 +2,8 @@ import Root from './Viewer3d.svelte';
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import util from "node:util";
+import { type Floor, generateTopAndBottom, expand } from "$utils/pointsToModel";
 
 class Environment3d {
   canvas: HTMLCanvasElement;

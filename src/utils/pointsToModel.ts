@@ -1,5 +1,6 @@
 import { Vector2, Vector3 } from 'three';
-import * as util from "node:util";
+import earcut from 'earcut';
+import * as THREE from 'three';
 
 export interface Point {
   x: number;
@@ -20,7 +21,7 @@ export interface Floor {
   innerWallVectors?: WallParameters[];
 }
 
-function expand(floors: Floor[]) {
+export function expand(floors: Floor[]) {
   let currentFloorHeight = 0;
 
   const wallVerticies: number[] = [];
@@ -34,11 +35,11 @@ function expand(floors: Floor[]) {
       throw Error('floor had less than 2 outer wall corners');
     }
 
-    const firstPoint = floor.outerWallCorners[0];
+    const firstPoint = floor.outerWallCorners[floor.outerWallCorners.length - 1];
     let currentX = firstPoint.x;
     let currentY = firstPoint.y;
 
-    const secondPoint = floor.outerWallCorners[1];
+    const secondPoint = floor.outerWallCorners[0];
     const secondX = secondPoint.x;
     const secondY = secondPoint.y;
 
@@ -50,17 +51,21 @@ function expand(floors: Floor[]) {
     const originalWidthScaleX = perpendicular.x;
     const originalWidthScaleY = perpendicular.y;
 
-    let pointLocation1: Vector3 = new Vector3(
+    let pointLocation1 = new Vector3(
         currentX + wallWidth * 0.5 * originalWidthScaleX,
         currentFloorHeight,
         currentY + wallWidth * 0.5 * originalWidthScaleY
     );
-    let pointLocation2: Vector3 = new Vector3(
+    let pointLocation2 = new Vector3(
         currentX - wallWidth * 0.5 * originalWidthScaleX,
         currentFloorHeight,
-        currentY - wallWidth * 0.5 * originalWidthScaleY
+        currentY - wallWidth * 0.5 * originalWidthScaleY,
     );
-    for (let pointIndex = 1; pointIndex < floor.outerWallCorners.length; pointIndex++) {
+
+    let originalPointLocation1 = new Vector3(0, 0, 0);
+    let originalPointLocation2 = new Vector3(0, 0, 0);
+
+    for (let pointIndex = 0; pointIndex < floor.outerWallCorners.length; pointIndex++) {
       const cornerPoint = floor.outerWallCorners[pointIndex];
       const cornerX = cornerPoint.x;
       const cornerY = cornerPoint.y;
@@ -76,93 +81,133 @@ function expand(floors: Floor[]) {
       let correctionForLocation3: Vector3 = new Vector3(0, 0, 0)
       let correctionForLocation4: Vector3 = new Vector3(0, 0, 0)
 
+      let nextPoint;
       if (pointIndex + 1 < floor.outerWallCorners.length) {
-        const nextPoint = floor.outerWallCorners[pointIndex + 1];
-        const nextX = nextPoint.x;
-        const nextY = nextPoint.y;
-
-        const currentVector = new Vector2(cornerX - currentX, cornerY - currentY)
-        const nextVector = new Vector2(nextX - cornerX, nextY - cornerY)
-
-        const angle = currentVector.clone().angleTo(nextVector.clone())
-
-        const half_width = wallWidth * 0.5
-        const a = half_width * Math.tan((Math.PI * 0.5 - angle))
-        const b = half_width / Math.cos((Math.PI * 0.5 - angle))
-
-        const currentUnit = currentVector.clone().normalize()
-
-        const correction = currentUnit.clone().multiplyScalar(a + b)
-
-        const dot = currentVector.clone().dot(nextVector.clone())
-        const determinant = currentVector.x * nextVector.y - currentVector.y * nextVector.x
-        const angleAbsolute = Math.atan2(determinant, dot)
-
-        let correctionFactorForLocation3
-        let correctionFactorForLocation4
-
-        console.log(angleAbsolute)
-
-        if (angleAbsolute > 0) {
-          correctionFactorForLocation3 = correction.clone().negate()
-          correctionFactorForLocation4 = correction.clone()
-        }
-        else {
-          correctionFactorForLocation3 = correction.clone()
-          correctionFactorForLocation4 = correction.clone().negate()
-        }
-
-        correctionForLocation3 = new Vector3(correctionFactorForLocation3.x, 0, correctionFactorForLocation3.y)
-        correctionForLocation4 = new Vector3(correctionFactorForLocation4.x, 0, correctionFactorForLocation4.y)
+        nextPoint = floor.outerWallCorners[pointIndex + 1];
+      } else {
+        nextPoint = floor.outerWallCorners[0];
       }
 
+      const nextX = nextPoint.x;
+      const nextY = nextPoint.y;
+
+      const currentVector = new Vector2(cornerX - currentX, cornerY - currentY)
+      const nextVector = new Vector2(nextX - cornerX, nextY - cornerY)
+
+      const angle = currentVector.clone().angleTo(nextVector.clone())
+
+      const half_width = wallWidth * 0.5
+      const a = half_width * Math.tan((angle - Math.PI * 0.5))
+      const b = half_width / Math.cos((angle - Math.PI * 0.5))
+
+      const currentUnit = currentVector.clone().normalize()
+
+      const correction = currentUnit.clone().multiplyScalar(a + b)
+
+      const dot = currentVector.clone().dot(nextVector.clone())
+      const determinant = currentVector.x * nextVector.y - currentVector.y * nextVector.x
+      const angleAbsolute = Math.atan2(determinant, dot)
+
+      let correctionFactorForLocation3
+      let correctionFactorForLocation4
+
+      if (angleAbsolute > 0) {
+        correctionFactorForLocation3 = correction.clone().negate()
+        correctionFactorForLocation4 = correction.clone()
+      } else {
+        correctionFactorForLocation3 = correction.clone()
+        correctionFactorForLocation4 = correction.clone().negate()
+      }
+
+      correctionForLocation3 = new Vector3(correctionFactorForLocation3.x, 0, correctionFactorForLocation3.y)
+      correctionForLocation4 = new Vector3(correctionFactorForLocation4.x, 0, correctionFactorForLocation4.y)
+
+
       const pointLocation3: Vector3 = new Vector3(
-          cornerX + wallWidth * 0.5 * widthScaleX,
-          currentFloorHeight,
-          cornerY + wallWidth * 0.5 * widthScaleY
+        cornerX + wallWidth * 0.5 * widthScaleX,
+        currentFloorHeight,
+        cornerY + wallWidth * 0.5 * widthScaleY
       ).add(correctionForLocation3);
       const pointLocation4: Vector3 = new Vector3(
-          cornerX - wallWidth * 0.5 * widthScaleX,
-          currentFloorHeight,
-          cornerY - wallWidth * 0.5 * widthScaleY,
+        cornerX - wallWidth * 0.5 * widthScaleX,
+        currentFloorHeight,
+        cornerY - wallWidth * 0.5 * widthScaleY,
       ).add(correctionForLocation4);
 
-      //const heightVector: Vector3 = new Vector3(0, floor.height, 0)
+      const heightVector: Vector3 = new Vector3(0, floor.height, 0)
+
+      if (pointIndex !== 0) {
 
       const lowerWallPoint1 = pointLocation1
       const lowerWallPoint2 = pointLocation2
       const lowerWallPoint3 = pointLocation3
       const lowerWallPoint4 = pointLocation4
 
-      //const upperWallPoint1 = pointLocation1.clone().add(heightVector)
-      //const upperWallPoint2 = pointLocation2.clone().add(heightVector)
-      //const upperWallPoint3 = pointLocation3.clone().add(heightVector)
-      //const upperWallPoint4 = pointLocation4.clone().add(heightVector)
+      const upperWallPoint1 = pointLocation1.clone().add(heightVector)
+      const upperWallPoint2 = pointLocation2.clone().add(heightVector)
+      const upperWallPoint3 = pointLocation3.clone().add(heightVector)
+      const upperWallPoint4 = pointLocation4.clone().add(heightVector)
 
       wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z);
       wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z);
 
-      //wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z);
-      //wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z);
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z);
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z);
 
-      //wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z,);
-      //wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z);
+      wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z,);
+      wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z);
 
-      //wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z,);
-      //wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z);
+      wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z,);
+      wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z);
 
-      //wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z);
-      //wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
+      wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z);
+      wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
 
-      //wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
-      //wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint2.x, upperWallPoint1.y, upperWallPoint2.z);
+      wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
+      wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint2.x, upperWallPoint1.y, upperWallPoint2.z);
+    }
+      else{
+        originalPointLocation1 = pointLocation3
+        originalPointLocation2 = pointLocation4
+      }
 
       currentX = cornerX
       currentY = cornerY
 
-        pointLocation1 = pointLocation3
-        pointLocation2 = pointLocation4
+      pointLocation1 = pointLocation3
+      pointLocation2 = pointLocation4
     }
+
+    const heightVector: Vector3 = new Vector3(0, floor.height, 0)
+
+
+      const lowerWallPoint1 = pointLocation1
+      const lowerWallPoint2 = pointLocation2
+      const lowerWallPoint3 = originalPointLocation1
+      const lowerWallPoint4 = originalPointLocation2
+
+      const upperWallPoint1 = pointLocation1.clone().add(heightVector)
+      const upperWallPoint2 = pointLocation2.clone().add(heightVector)
+      const upperWallPoint3 = originalPointLocation1.clone().add(heightVector)
+      const upperWallPoint4 = originalPointLocation2.clone().add(heightVector)
+
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z);
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z);
+
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z);
+      wallVerticies.push(lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z);
+
+      wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, lowerWallPoint1.x, lowerWallPoint1.y, lowerWallPoint1.z,);
+      wallVerticies.push(lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z);
+
+      wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, lowerWallPoint3.x, lowerWallPoint3.y, lowerWallPoint3.z,);
+      wallVerticies.push(lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z);
+
+      wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, lowerWallPoint4.x, lowerWallPoint4.y, lowerWallPoint4.z);
+      wallVerticies.push(lowerWallPoint2.x, lowerWallPoint2.y, lowerWallPoint2.z, upperWallPoint2.x, upperWallPoint2.y, upperWallPoint2.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
+
+      wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint3.x, upperWallPoint3.y, upperWallPoint3.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z);
+      wallVerticies.push(upperWallPoint1.x, upperWallPoint1.y, upperWallPoint1.z, upperWallPoint4.x, upperWallPoint4.y, upperWallPoint4.z, upperWallPoint2.x, upperWallPoint1.y, upperWallPoint2.z);
 
     currentFloorHeight += floor.height;
   }
@@ -170,14 +215,52 @@ function expand(floors: Floor[]) {
   return new Float32Array(wallVerticies)
 }
 
-const test: Floor[] = [];
-const floor1: Floor = {
-  number: 1,
-  height: 3,
-  outerWallCorners: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 8, y: 4}, {x: 4, y: 8}],
-  outerWallWidth: 0.5,
-  innerWallVectors: [{startPos: {x: 0, y: 0}, endPos: {x: 0, y: 0}, wallWidth: 4}]
-}
+export function generateTopAndBottom(floors: Floor[]) {
+  const geometries = [];
 
-test.push(floor1)
-console.log(util.inspect(expand(test), { maxArrayLength: null }))
+  let currentFloorHeight = 0
+
+  for (let floorNumber = 0; floorNumber < floors.length; floorNumber++) {
+    const bottomPoints = []
+    const topPoints = []
+
+    for (let pointIndex = 0; pointIndex < floors[floorNumber].outerWallCorners.length; pointIndex++) {
+      const current = floors[floorNumber].outerWallCorners[pointIndex];
+
+      bottomPoints.push(current.x)
+      bottomPoints.push(current.y)
+
+      topPoints.push(current.x)
+      topPoints.push(current.y)
+    }
+    const first = floors[floorNumber].outerWallCorners[0]
+
+    bottomPoints.push(first.x)
+    bottomPoints.push(first.y)
+
+    topPoints.push(first.x)
+    topPoints.push(first.y)
+
+    const bottomVertices = new Float32Array( earcut(bottomPoints) )
+    const topVertices = new Float32Array(  earcut(topPoints) )
+
+    console.log(bottomVertices)
+    console.log(topVertices)
+
+    const bottomGeometry = new THREE.BufferGeometry();
+    const topGeometry = new THREE.BufferGeometry();
+
+    bottomGeometry.setAttribute('position', new THREE.BufferAttribute(bottomVertices, 3));
+    bottomGeometry.computeVertexNormals();
+
+    topGeometry.setAttribute('position', new THREE.BufferAttribute(topVertices, 3));
+    topGeometry.computeVertexNormals();
+
+    geometries.push(bottomGeometry)
+    geometries.push(topGeometry)
+
+    currentFloorHeight += floors[floorNumber].height
+  }
+
+  return geometries
+}
