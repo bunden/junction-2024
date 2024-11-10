@@ -1,5 +1,5 @@
 import { type Writable, writable } from 'svelte/store';
-import type {Point, WallParameters} from "$utils/pointsToModel";
+import type { Floor, Point, WallParameters } from '$utils/pointsToModel';
 
 export const currentView: Writable<undefined | '2d' | '3d'> = writable(undefined);
 

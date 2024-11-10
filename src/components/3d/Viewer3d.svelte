@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Environment3d } from './index';
-  import { objectSelected } from '../../globalStore';
+  import { floorStates, objectSelected } from '../../globalStore';
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
@@ -18,6 +18,11 @@
 
   $effect(() => {
     environment = new Environment3d(canvas);
+  });
+
+  floorStates.subscribe((floorStates) => {
+    if (!environment) return;
+    environment.reloadBuilding(floorStates);
   });
 
   const mouseUpHandler = (event: MouseEvent) => {
@@ -62,11 +67,6 @@
 
 <span class={hidden ? 'hidden' : ''}>
   <div style="position: absolute; top: 35px; z-index: 999">
-    <button
-      onclick={() => {
-        environment.loadManualModel();
-      }}>Load manual model</button
-    >
     <input
       type="file"
       id="fileInput"

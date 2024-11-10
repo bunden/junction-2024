@@ -2,7 +2,7 @@ import Root from './Viewer3d.svelte';
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { type Floor, generateTopAndBottom, expand } from "$utils/pointsToModel";
+import { expand, type Floor, type Point, generateTopAndBottom } from '$utils/pointsToModel';
 
 class Environment3d {
   canvas: HTMLCanvasElement;
@@ -43,7 +43,38 @@ class Environment3d {
     directionalLight.position.set(8, 10, 5);
     this.scene.add(directionalLight);
 
+    const buildingGroup = new THREE.Group();
+    buildingGroup.name = 'building_group';
+    this.scene.add(buildingGroup);
+
     this.updateCameraPosition();
+  }
+
+  reloadBuilding(floorStates: any) {
+    const buildingGroup = this.scene.getObjectByName('building_group');
+    if (!buildingGroup) return;
+    buildingGroup.clear();
+    floorStates.forEach((value: any, key: string) => {
+      if (!value.outerWallCorners) return;
+      console.log(value.outerWallCorners[0].x);
+      console.log(value.outerWallCorners[0].y);
+      const floor: Floor = {
+        number: Number(key),
+        height: value.height,
+        outerWallCorners: value.outerWallCorners.map((point: Point) => {
+          return { x: point.x / 100.0, y: point.y / 100.0 };
+        }),
+        outerWallWidth: value.outerWallWidth,
+        innerWallVectors: value.innerWallVectors
+      };
+      const floorVertices = expand([floor]);
+      const floorGeometry = new THREE.BufferGeometry();
+      floorGeometry.setAttribute('position', new THREE.BufferAttribute(floorVertices, 3));
+      floorGeometry.computeVertexNormals();
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: '#FF5555', transparent: true, opacity: 0.5 });
+      const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+      buildingGroup.add(floorMesh);
+    });
   }
 
   rotateCamera(xMovement: number, yMovement: number) {
@@ -151,39 +182,51 @@ class Environment3d {
     const floor1: Floor = {
       number: 1,
       height: 3,
-      outerWallCorners: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 8, y: 4}, {x: 4, y: 8}, {x: 0, y: 8}],
+      outerWallCorners: [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 4, y: 4 },
+        { x: 8, y: 4 },
+        { x: 4, y: 8 },
+        { x: 0, y: 8 }
+      ],
       outerWallWidth: 0.5,
-      innerWallVectors: [{startPos: {x: 0, y: 0}, endPos: {x: 0, y: 0}, wallWidth: 4}]
-    }
+      innerWallVectors: [{ startPos: { x: 0, y: 0 }, endPos: { x: 0, y: 0 }, wallWidth: 4 }]
+    };
     const floor2: Floor = {
       number: 1,
       height: 2,
-      outerWallCorners: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 0, y: 4}],
+      outerWallCorners: [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 4, y: 4 },
+        { x: 0, y: 4 }
+      ],
       outerWallWidth: 0.5,
-      innerWallVectors: [{startPos: {x: 0, y: 0}, endPos: {x: 0, y: 0}, wallWidth: 4}]
-    }
+      innerWallVectors: [{ startPos: { x: 0, y: 0 }, endPos: { x: 0, y: 0 }, wallWidth: 4 }]
+    };
 
-    test.push(floor1)
-    test.push(floor2)
+    test.push(floor1);
+    test.push(floor2);
 
     const material = new THREE.MeshStandardMaterial({ color: '#FF5555', wireframe: false });
 
-    const buildingGeometry = expand(test)
+    const buildingGeometry = expand(test);
 
     for (let i = 0; i < buildingGeometry.length; i++) {
       for (let j = 0; j < buildingGeometry[i].length; j++) {
-        const wall_mesh = new THREE.Mesh(buildingGeometry[i][j], material)
+        const wall_mesh = new THREE.Mesh(buildingGeometry[i][j], material);
 
-        this.scene.add(wall_mesh)
+        this.scene.add(wall_mesh);
       }
     }
 
-    const planes = generateTopAndBottom(test)
+    const planes = generateTopAndBottom(test);
 
     for (let i = 0; i < planes.length; i++) {
-      const plane_mesh = new THREE.Mesh(planes[i], material)
+      const plane_mesh = new THREE.Mesh(planes[i], material);
 
-      this.scene.add(plane_mesh)
+      this.scene.add(plane_mesh);
     }
   }
 }
