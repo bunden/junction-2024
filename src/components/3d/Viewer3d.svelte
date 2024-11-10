@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Environment3d } from './index';
-  import { floorStates, objectSelected } from '../../globalStore';
+  import { floorStates, objectSelected, buildingTransparent } from '../../globalStore';
 
   let canvas: HTMLCanvasElement;
   let environment: Environment3d;
@@ -22,7 +22,7 @@
 
   floorStates.subscribe((floorStates) => {
     if (!environment) return;
-    environment.reloadBuilding(floorStates);
+    environment.reloadBuilding(floorStates, $buildingTransparent);
   });
 
   const mouseUpHandler = (event: MouseEvent) => {
@@ -83,6 +83,13 @@
       }}
       disabled={!$objectSelected}>Delete</button
     >
+    <input
+      type="checkbox"
+      onchange={() => {
+        $buildingTransparent = !$buildingTransparent;
+        environment.reloadBuilding($floorStates, $buildingTransparent);
+      }}
+    />
   </div>
 
   <canvas

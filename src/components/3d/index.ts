@@ -19,6 +19,16 @@ class Environment3d {
   cameraDistance: number = 10;
   cameraTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
+  buildingMaterialSolid = new THREE.MeshStandardMaterial({
+    color: '#FF5555'
+  });
+
+  buildingMaterialTransparent = new THREE.MeshStandardMaterial({
+    color: '#FF5555',
+    transparent: true,
+    opacity: 0.5
+  });
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.scene = new THREE.Scene();
@@ -50,7 +60,7 @@ class Environment3d {
     this.updateCameraPosition();
   }
 
-  reloadBuilding(floorStates: any) {
+  reloadBuilding(floorStates: any, transparent: boolean) {
     const buildingGroup = this.scene.getObjectByName('building_group');
     if (!buildingGroup) return;
     buildingGroup.clear();
@@ -71,7 +81,7 @@ class Environment3d {
       const floorGeometry = new THREE.BufferGeometry();
       floorGeometry.setAttribute('position', new THREE.BufferAttribute(floorVertices, 3));
       floorGeometry.computeVertexNormals();
-      const floorMaterial = new THREE.MeshStandardMaterial({ color: '#FF5555', transparent: true, opacity: 0.5 });
+      const floorMaterial = transparent ? this.buildingMaterialTransparent : this.buildingMaterialSolid;
       const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
       buildingGroup.add(floorMesh);
     });
@@ -136,7 +146,9 @@ class Environment3d {
     mouse.x = (x / this.canvas.clientWidth) * 2 - 1;
     mouse.y = -(y / this.canvas.clientHeight) * 2 + 1;
     this.raycaster.setFromCamera(mouse, this.camera);
-    const intersection = this.raycaster.intersectObjects(this.scene.children);
+    const intersection = this.raycaster.intersectObjects(
+      this.scene.children.filter((object) => object.name !== 'building_group')
+    );
     if (intersection.length == 0) {
       this.highlightedObject = undefined;
     } else {
