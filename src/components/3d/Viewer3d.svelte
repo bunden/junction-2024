@@ -2,6 +2,8 @@
   import { Environment3d } from './index';
   import { floorStates, objectSelected, buildingTransparent, exportModel } from '../../globalStore';
   import { Button } from '$components/ui/button/index.js';
+  import { Switch } from '$components/ui/switch';
+  import { Label } from '$components/ui/label';
 
   import Dropzone from 'svelte-file-dropzone';
 
@@ -82,6 +84,13 @@
       environment.zoomCamera(event.deltaY);
     }
   };
+
+  let isTransparent = $state(false);
+
+  $effect(() => {
+    $buildingTransparent = isTransparent;
+    environment.reloadBuilding($floorStates, $buildingTransparent);
+  });
 </script>
 
 <span class={hidden ? 'hidden' : ''}>
@@ -93,29 +102,24 @@
     <span class="font-semibold text-lg">Drop a 3D model to import</span>
   </Dropzone>
 
-  <Button
-    style="z-index: 999"
-    class="absolute bottom-[1.75rem] right-[1.75rem] transition duration-150"
-    onclick={() => {
-      environment.removeSelectedObject();
-      $objectSelected = false;
-    }}
-    variant="destructive"
-    disabled={!$objectSelected}>Delete selected</Button
-  >
-
-  <div style="position: absolute; top: 35px; z-index: 999">
-    <input
-      type="checkbox"
-      onchange={() => {
-        $buildingTransparent = !$buildingTransparent;
-        environment.reloadBuilding($floorStates, $buildingTransparent);
-      }}
-    />
-    <button
+  <div class="absolute flex gap-4 bottom-[1.75rem] right-[1.75rem]">
+    <div class="flex gap-2">
+      <span class="flex flex-col justify-center">
+        <Label for="transparency" class="font-medium opacity-75">Toggle transparency</Label>
+      </span>
+      <span class="flex flex-col justify-center">
+        <Switch id="transparency" bind:checked={isTransparent} />
+      </span>
+    </div>
+    <Button
+      style="z-index: 999"
+      class="transition duration-150"
       onclick={() => {
-        environment.loadManualModel();
-      }}>Load manual model</button
+        environment.removeSelectedObject();
+        $objectSelected = false;
+      }}
+      variant="destructive"
+      disabled={!$objectSelected}>Delete selected</Button
     >
   </div>
 
