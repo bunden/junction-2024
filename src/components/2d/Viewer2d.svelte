@@ -99,8 +99,6 @@
 
   const submitFloor = () => {
     if ($floorStates !== undefined) {
-      console.log(getPoints(circles['1']!));
-      console.log(getPoints(circles['2']!));
       $floorStates = new Map(
         $floorStates.entries().map(([key, value]) => {
           const newValue = {
