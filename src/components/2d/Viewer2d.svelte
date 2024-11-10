@@ -102,6 +102,8 @@
   };
 
   const submitFloor = () => {
+    const xOffset = shapeLayer['1']!.getWidth() ?? 0 / 2;
+    const yOffset = shapeLayer['1']!.getHeight() ?? 0 / 2;
     if ($floorStates !== undefined) {
       $floorStates = new Map(
         $floorStates.entries().map(([key, value]) => {
@@ -111,7 +113,7 @@
             scale: floor.scale,
             meterStickLengthPx: length,
             innerWallVectors: [],
-            outerWallCorners: getPoints(circles[key]!),
+            outerWallCorners: getPoints(circles[key]!).map((point) => ({ x: point.x - xOffset, y: point.y - yOffset })),
             outerWallWidth: floor.outerWallWidth
           };
 
