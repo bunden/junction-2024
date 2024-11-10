@@ -8,18 +8,25 @@
   import * as Dialog from '$components/ui/dialog';
   import { Input } from '$components/ui/input/index.js';
   import { Label } from '$components/ui/label/index.js';
-  import * as Alert from "$components/ui/alert/index.js";
+  import * as Alert from '$components/ui/alert/index.js';
 
   import { fade } from 'svelte/transition';
   import { activeFloor, floorStates } from '../../globalStore';
   import type { Floor, Point } from '$utils/pointsToModel';
-  import {onMount} from "svelte";
+  import { onMount } from 'svelte';
+
+  const notificationTime = 10000
 
   let circles: Konva.Circle[] = $state([]);
 
   let width = $state(0);
   let height = $state(0);
   let isClosed = $state(false);
+  let notifyStart = $state(false);
+  let dialogOpen = $state(false)
+  let successAlert = $state(false)
+  let imageLayer: Konva.Layer | undefined = $state();
+  let shapeLayer: Konva.Layer | undefined = $state();
 
   let stage: Konva.Stage | undefined = $state();
 
@@ -76,13 +83,6 @@
     innerWallVectors: []
   });
 
-  floorStates.subscribe((state) => {
-    const floorState = state?.get($activeFloor);
-    if (floorState?.outerWallCorners && floorState.outerWallCorners.length > 0) {
-      isClosed = false;
-    }
-  });
-
   const getPoints = (): Point[] => {
     return circles.map((circle) => {
       return {
@@ -103,50 +103,69 @@
           outerWallCorners: getPoints(),
           outerWallWidth: floor.outerWallWidth
         });
+
+        successAlert = true
+        window.setTimeout(() => {
+          successAlert = false;
+        }, notificationTime);
       }
     }
-  }
+  };
 
-  let headsUp = $state(false)
+  let clearCanvas = () => {
+
+    shapeLayer?.destroyChildren()
+    shapeLayer?.draw()
+
+    circles = []
+    isClosed = false
+  }
 
   onMount(() => {
     window.setTimeout(() => {
-      headsUp = true
-    }, 1000)
+      notifyStart = true;
+    }, 1000);
 
     window.setTimeout(() => {
-      headsUp = false
-    }, 10000)
-  })
+      notifyStart = false;
+    }, notificationTime + 1000);
+  });
 </script>
 
 <span class={hidden ? 'hidden' : ''}>
   <Stage bind:handle={stage} config={{ width, height }}>
-    <FloorPlanner bind:circles bind:isClosed {blueprint} />
+    <FloorPlanner bind:imageLayer bind:shapeLayer bind:circles bind:isClosed {blueprint} />
   </Stage>
 
-  {#if headsUp}
-  <span transition:fade={{duration: 500}}>
-    <Alert.Root class="absolute top-12 right-4 w-80">
-    <Alert.Title>How to get started?</Alert.Title>
-    <Alert.Description
-    >Draw outer lines of the floor by selecting the corners!</Alert.Description
-    >
-  </Alert.Root>
-  </span>
-{/if}
+  {#if successAlert}
+    <span class="z-50" transition:fade={{ duration: 500 }}>
+      <Alert.Root class="absolute top-12 right-4 w-80">
+        <Alert.Title class="text-bold">Successfully converted shape to 3D!</Alert.Title>
+        <Alert.Description>Go to 3d editor to view your shape.</Alert.Description>
+      </Alert.Root>
+    </span>
+  {/if}
 
-{#if isClosed}
+  {#if notifyStart}
+    <span transition:fade={{ duration: 500 }}>
+      <Alert.Root class="absolute top-12 right-4 w-80">
+        <Alert.Title class="text-bold text-lg">How to get started?</Alert.Title>
+        <Alert.Description>Draw outer lines of the floor by selecting the corners!</Alert.Description>
+      </Alert.Root>
+    </span>
+  {/if}
+
+  {#if isClosed}
     <span transition:fade={{ duration: 150 }}>
       <Card.Root class="w-96 absolute bottom-4 -translate-x-1/2 left-1/2 right-1/2">
         <Card.Header class="mb-4">
-          <Card.Title>You have a complete building shape!</Card.Title>
+          <Card.Title class="text-bold text-lg">You have a complete building shape!</Card.Title>
           <Card.Description>Do you want to continue?</Card.Description>
         </Card.Header>
         <Card.Footer class="flex justify-between">
-          <Button>Clear</Button>
-          <Dialog.Root>
-            <Dialog.Trigger class={buttonVariants({ variant: 'outline' })}>Continue</Dialog.Trigger>
+          <Button onclick={() => {clearCanvas()}}>Clear</Button>
+          <Dialog.Root bind:open={dialogOpen}>
+            <Dialog.Trigger onclick={() => {dialogOpen = true}} class={buttonVariants({ variant: 'outline' })}>Continue</Dialog.Trigger>
             <Dialog.Content class="sm:max-w-[425px]">
               <Dialog.Header>
                 <Dialog.Title>Add a floor</Dialog.Title>
@@ -163,7 +182,10 @@
                 </div>
               </div>
               <Dialog.Footer>
-                <Button onclick={() => submitFloor()}>Save changes</Button>
+                <Button type="submit" onclick={() => {
+                  submitFloor()
+                  dialogOpen = false
+                }}>Convert to 3D</Button>
               </Dialog.Footer>
             </Dialog.Content>
           </Dialog.Root>

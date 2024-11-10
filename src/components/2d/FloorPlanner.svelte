@@ -1,34 +1,35 @@
 <script lang="ts">
   import Konva from 'konva';
   import { Layer, Image } from 'svelte-konva';
-  import type {Point} from "$utils/pointsToModel";
+  import type { Point } from '$utils/pointsToModel';
 
   interface FloorPlannerProps {
     blueprint: string | undefined;
     isClosed: boolean;
-    circles: Konva.Circle[]
+    circles: Konva.Circle[];
+    imageLayer: Konva.Layer | undefined;
+    shapeLayer: Konva.Layer | undefined
   }
 
-  let { blueprint, isClosed = $bindable(), circles = $bindable() }: FloorPlannerProps = $props();
-
-  let imageLayer: Konva.Layer | undefined = $state();
-  let shapeLayer: Konva.Layer | undefined = $state();
+  let { blueprint, isClosed = $bindable(), circles = $bindable(), imageLayer = $bindable(), shapeLayer = $bindable()  }: FloorPlannerProps = $props();
 
   let image: HTMLImageElement | undefined = $state();
   let pos = $state({ x: 0, y: 0 });
 
   let clickPosition: Point | undefined = $state();
 
-  let poly: Konva.Line | undefined = undefined
+  let poly: Konva.Line | undefined = undefined;
 
   const calculatePolyShape = () => {
-    if(isClosed && shapeLayer){
-      const points = circles.map((circle) => {
-        return [circle.x(), circle.y()]
-      }).flat()
+    if (isClosed && shapeLayer) {
+      const points = circles
+        .map((circle) => {
+          return [circle.x(), circle.y()];
+        })
+        .flat();
 
-      if(poly !== undefined){
-        poly.destroy()
+      if (poly !== undefined) {
+        poly.destroy();
       }
 
       poly = new Konva.Line({
@@ -36,13 +37,13 @@
         fill: 'rgba(0, 0, 0, 0.25)',
         stroke: 'rgba(0, 0, 0, 0.75)',
         strokeWidth: 5,
-        closed: true,
+        closed: true
       });
 
-      shapeLayer.add(poly)
-      poly.moveToBottom()
+      shapeLayer.add(poly);
+      poly.moveToBottom();
     }
-  }
+  };
 
   // Center and fit the image
   $effect(() => {
@@ -97,7 +98,7 @@
         x: pointer.x,
         y: pointer.y,
         radius: 5,
-        fill: 'blue',
+        fill: 'rgba(255, 100, 100, 1)',
         draggable: true
       });
 
@@ -116,12 +117,13 @@
       if (xDiffFirst < 10 && yDiffFirst < 10) {
         const line = new Konva.Line({
           points: [firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()],
-          stroke: 'white',
+          stroke: 'rgba(255, 255, 255, 0.75)',
           strokeWidth: 4
         });
-        firstCircle.on('dragmove', () =>
-          line.points([firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()])
-        );
+        firstCircle.on('dragmove', () => {
+          calculatePolyShape();
+          line.points([firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()]);
+        });
         lastCircle.on('dragmove', () =>
           line.points([firstCircle.x(), firstCircle.y(), lastCircle.x(), lastCircle.y()])
         );
@@ -135,12 +137,12 @@
 
       const line = new Konva.Line({
         points: [lastCircle.x(), lastCircle.y(), circle.x(), circle.y()],
-        stroke: 'white',
+        stroke: 'rgba(255, 255, 255, 0.75)',
         strokeWidth: 4
       });
       circle.on('dragmove', () => {
-        calculatePolyShape()
-        line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()])
+        calculatePolyShape();
+        line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]);
       });
       lastCircle.on('dragmove', () => line.points([lastCircle.x(), lastCircle.y(), circle.x(), circle.y()]));
 
@@ -151,10 +153,10 @@
     });
   });
 
-  $effect(() => calculatePolyShape())
+  $effect(() => calculatePolyShape());
 </script>
 
 <Layer bind:handle={imageLayer}>
-  <Image config={{ image, x: pos.x, y: pos.y, draggable: true, opacity: 0.75 }} />
+  <Image config={{ image, x: pos.x, y: pos.y, draggable: true, opacity: 0.5 }} />
 </Layer>
 <Layer bind:handle={shapeLayer}></Layer>
